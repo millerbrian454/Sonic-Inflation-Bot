@@ -44,7 +44,7 @@ namespace SonicInflatorService
                 await _client.LoginAsync(TokenType.Bot, _settings.Token);
                 await _client.StartAsync();
 
-                await using (stoppingToken.Register(() => _tcs.TrySetCanceled()))
+                using (stoppingToken.Register(() => _tcs.TrySetCanceled()))
                 {
                     await _tcs.Task;
                 }
@@ -58,13 +58,15 @@ namespace SonicInflatorService
 
         private Task GetDiscordChannelOnReady()
         {
-            _discordChannel = _client.GetChannel(_settings.ChannelId) as IMessageChannel;
+            ulong selectedChannelId = SelectChannelId();
+            _discordChannel = _client.GetChannel(selectedChannelId) as IMessageChannel;
+
             if (_discordChannel == null)
             { 
                 _logger.LogError("Channel not found.");
                 _tcs.TrySetCanceled();
             }
-            else 
+            else
             {
                 _logger.LogInformation("Bot is ready. Channel acquired.");
                 _tcs.TrySetResult();
@@ -126,11 +128,31 @@ namespace SonicInflatorService
             }
             else
             {
-                _logger.LogInformation($"Discord API Response: [{discordLogMessage.Severity}] {discordLogMessage}");
+                _logger.LogInformation($"Discord API Response: [{discordLogMessage.Severity}]{discordLogMessage}");
             }
                 
 
             return Task.CompletedTask;
+        }
+
+        private ulong SelectChannelId()
+        {
+            ulong selectedChannelId;
+            int randomChannelChancePercentage = _settings.RandomChannelPercentageChance;
+            bool randomChannelChance = _random.Next(100) < randomChannelChancePercentage;
+
+            if (randomChannelChance)
+            {
+                selectedChannelId = _settings.ChannelIds[_random.Next(_settings.ChannelIds.Count)];
+                _logger.LogInformation($"[{randomChannelChancePercentage}% chance] Randomly selected channel.");
+            }
+            else
+            {
+                // Use primary channel
+                selectedChannelId = _settings.PrimaryChannelId;
+            }
+
+            return selectedChannelId;
         }
     }
 }
