@@ -29,8 +29,6 @@ namespace SonicInflatorService
             _client.MessageReceived += GetDiscordChannelMessage;
         }
 
-      
-
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             while (!stoppingToken.IsCancellationRequested)
@@ -59,7 +57,6 @@ namespace SonicInflatorService
                     {
                         _logger.LogError(ex, "An exception was thrown while inflating sonic");
                     }
-
                 }
             }
         }
