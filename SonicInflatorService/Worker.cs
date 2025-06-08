@@ -13,6 +13,8 @@ namespace SonicInflatorService
         private IMessageChannel? _discordChannel;
         private readonly Random _random = new();
         private readonly TaskCompletionSource _tcs;
+        private readonly TimeSpan _cooldown;
+        private DateTime _lastResponse;
         public Worker(ILogger<Worker> logger, IConfiguration config)
         {
             _logger = logger;
@@ -24,6 +26,8 @@ namespace SonicInflatorService
 
             _client = new DiscordSocketClient(socketConfig);
             _settings = config.GetSection("Discord").Get<DiscordSettings>();
+            _cooldown = TimeSpan.FromMinutes(_settings.ResponseCooldownIntervalMinutes);
+            _lastResponse = DateTime.Now.AddMinutes(-_settings.ResponseCooldownIntervalMinutes);
             _client.Log += LogDiscordResponseMessage;
             _client.Ready += GetPrimaryDiscordChannel;
             _client.MessageReceived += GetDiscordChannelMessage;
@@ -82,7 +86,8 @@ namespace SonicInflatorService
 
         private async Task GetDiscordChannelMessage(SocketMessage message)
         {
-            if(message.Author.Id != _client.CurrentUser.Id 
+            if(_lastResponse.Add(_cooldown) <= DateTime.Now
+                && message.Author.Id != _client.CurrentUser.Id 
                 && !message.Author.IsBot
                 && _settings != null
                 && _settings.ChannelIds.Contains(message.Channel.Id)
@@ -90,7 +95,9 @@ namespace SonicInflatorService
             {
                 if (_client.GetChannel(message.Channel.Id) is IMessageChannel channel)
                 {
+
                     await channel.SendFileAsync(_settings.ImagePath, $"DID {message.Author.Mention} SAY SONIC INFLATION?!");
+                    _lastResponse = DateTime.Now;
                 }
 
             }

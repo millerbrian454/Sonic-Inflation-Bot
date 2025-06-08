@@ -9,5 +9,6 @@
         public int RandomIntervalMinutesMaxValue { get; set; }
         public int RandomIntervalMinutesMinValue { get; set; }
         public int RandomChannelPercentageChance { get; set; }
+        public int ResponseCooldownIntervalMinutes { get; set; }
     }
 }
