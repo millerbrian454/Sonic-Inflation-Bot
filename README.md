@@ -40,6 +40,3 @@ In no event shall we be liable for any damages arising from the use or inability
 
 We reserve the right to disable or remove the App from any server that violates these Terms or Discord’s policies.
 
-## 9. Contact
-
-For questions or concerns, contact: **[Insert Email or Support Link]**
