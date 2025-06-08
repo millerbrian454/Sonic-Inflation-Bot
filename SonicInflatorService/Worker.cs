@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
@@ -16,11 +17,19 @@ namespace SonicInflatorService
         {
             _logger = logger;
             _tcs = new TaskCompletionSource();
-            _client = new DiscordSocketClient();
+            DiscordSocketConfig socketConfig = new DiscordSocketConfig
+            {
+                GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.MessageContent
+            };
+
+            _client = new DiscordSocketClient(socketConfig);
             _settings = config.GetSection("Discord").Get<DiscordSettings>();
             _client.Log += LogDiscordResponseMessage;
             _client.Ready += GetPrimaryDiscordChannel;
+            _client.MessageReceived += GetDiscordChannelMessage;
         }
+
+      
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
@@ -70,6 +79,24 @@ namespace SonicInflatorService
                 _tcs.TrySetResult();
             }
             return Task.CompletedTask;
+        }
+
+        private static readonly Regex _sonicMentioned = new Regex(@"\b(sonic|inflat\w*)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private async Task GetDiscordChannelMessage(SocketMessage message)
+        {
+            if(message.Author.Id != _client.CurrentUser.Id 
+                && !message.Author.IsBot
+                && _settings != null
+                && _settings.ChannelIds.Contains(message.Channel.Id)
+                && _sonicMentioned.IsMatch(message.Content))
+            {
+                if (_client.GetChannel(message.Channel.Id) is IMessageChannel channel)
+                {
+                    await channel.SendFileAsync(_settings.ImagePath, $"DID {message.Author.Mention} SAY SONIC INFLATION?!");
+                }
+
+            }
         }
 
         private async Task SendImageOnRandomIntervalAsync(CancellationToken stoppingToken)
