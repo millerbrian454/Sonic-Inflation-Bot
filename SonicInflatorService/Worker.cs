@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
@@ -97,13 +97,21 @@ namespace SonicInflatorService
                 && message.Author.Id != _client.CurrentUser.Id 
                 && !message.Author.IsBot
                 && _settings != null
-                && _settings.ChannelIds.Contains(message.Channel.Id)
-                && _sonicMentioned.IsMatch(message.Content))
+                && _settings.ChannelIds.Contains(message.Channel.Id))
             {
                 if (_client.GetChannel(message.Channel.Id) is IMessageChannel channel)
                 {
-                    await channel.SendFileAsync(_settings.ImagePath, $"DID {message.Author.Mention} SAY SONIC INFLATION?!");
-                    _lastResponse = DateTime.Now;
+                    if (_sonicMentioned.IsMatch(message.Content))
+                    {
+                        await channel.SendFileAsync(_settings.InflatedImagePath, $"DID {message.Author.Mention} SAY SONIC INFLATION?!");
+                        _lastResponse = DateTime.Now;
+                    }
+                    else if(message.CleanContent == "ALAKAGOO! 👉")
+                    {
+                        await channel.SendFileAsync(_settings.DeflatedImagePath, $"SONIC NOOOOOOOOO. {message.Author.Mention} WHAT HAVE YOU DONE?!");
+                        _lastResponse = DateTime.Now;
+                    }
+                    
                 }
             }
         }
@@ -112,7 +120,7 @@ namespace SonicInflatorService
         {
             try
             {
-                await _discordChannel.SendFileAsync(_settings.ImagePath);
+                await _discordChannel.SendFileAsync(_settings.InflatedImagePath);
                 _logger.LogInformation("Image sent immediately on startup.");
             }
             catch (Exception ex)
@@ -136,11 +144,11 @@ namespace SonicInflatorService
                     if (_discordChannel.Id != _settings.PrimaryChannelId)
                     {
                         string containmentBreachAlert = ":siren: CONTAINMENT BREACH :siren:";
-                        await _discordChannel.SendFileAsync(_settings.ImagePath, containmentBreachAlert);
+                        await _discordChannel.SendFileAsync(_settings.InflatedImagePath, containmentBreachAlert);
                     }
                     else
                     {
-                        await _discordChannel.SendFileAsync(_settings.ImagePath);
+                        await _discordChannel.SendFileAsync(_settings.InflatedImagePath);
                     }
 
                     _logger.LogInformation("Image sent successfully.");

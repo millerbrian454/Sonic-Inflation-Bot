@@ -17,6 +17,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="sonic-goo.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="sonic-inflation.jpg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
