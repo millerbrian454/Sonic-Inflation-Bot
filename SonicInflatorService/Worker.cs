@@ -25,11 +25,9 @@ namespace SonicInflatorService
             _client = new DiscordSocketClient(socketConfig);
             _settings = config.GetSection("Discord").Get<DiscordSettings>();
             _client.Log += LogDiscordResponseMessage;
-            _client.Ready += GetDiscordChannelOnReady;
+            _client.Ready += GetPrimaryDiscordChannel;
             _client.MessageReceived += GetDiscordChannelMessage;
         }
-
-      
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
@@ -51,19 +49,25 @@ namespace SonicInflatorService
 
                 if (_discordChannel != null)
                 {
-                    await SendImageOnRandomIntervalAsync(stoppingToken);
+                    try
+                    {
+                        await SendImageOnRandomIntervalAsync(stoppingToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "An exception was thrown while inflating sonic");
+                    }
                 }
             }
         }
 
-        private Task GetDiscordChannelOnReady()
+        private Task GetPrimaryDiscordChannel()
         {
-            ulong selectedChannelId = SelectChannelId();
-            _discordChannel = _client.GetChannel(selectedChannelId) as IMessageChannel;
+            _discordChannel = _client.GetChannel(_settings.PrimaryChannelId) as IMessageChannel;
 
             if (_discordChannel == null)
             { 
-                _logger.LogError("Channel not found.");
+                _logger.LogError("Primary channel not found.");
                 _tcs.TrySetCanceled();
             }
             else
@@ -108,6 +112,10 @@ namespace SonicInflatorService
             {
                 int delayMinutes =  _random.Next(_settings.RandomIntervalMinutesMinValue, _settings.RandomIntervalMinutesMaxValue + 1);
                 int delayMilliseconds = delayMinutes * 60 * 1000;
+                
+                ulong selectedChannelId = SelectRandomChannelId();
+                _discordChannel = _client.GetChannel(selectedChannelId) as IMessageChannel;
+
                 _logger.LogInformation($"Waiting {delayMinutes} minutes before sending next image...");
                 await Task.Delay(delayMilliseconds, stoppingToken);
 
@@ -139,7 +147,7 @@ namespace SonicInflatorService
             return Task.CompletedTask;
         }
 
-        private ulong SelectChannelId()
+        private ulong SelectRandomChannelId()
         {
             ulong selectedChannelId;
             int randomChannelChancePercentage = _settings.RandomChannelPercentageChance;
@@ -152,7 +160,6 @@ namespace SonicInflatorService
             }
             else
             {
-                // Use primary channel
                 selectedChannelId = _settings.PrimaryChannelId;
             }
 
