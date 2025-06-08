@@ -26,10 +26,15 @@ namespace SonicInflatorService
 
             _client = new DiscordSocketClient(socketConfig);
             _settings = config.GetSection("Discord").Get<DiscordSettings>();
-            _cooldown = TimeSpan.FromMinutes(_settings.ResponseCooldownIntervalMinutes);
-            _lastResponse = DateTime.Now.AddMinutes(-_settings.ResponseCooldownIntervalMinutes);
+            _cooldown = TimeSpan.FromSeconds(_settings.ResponseCooldownIntervalSeconds);
+            _lastResponse = DateTime.Now.AddMinutes(-_settings.ResponseCooldownIntervalSeconds);
             _client.Log += LogDiscordResponseMessage;
-            _client.Ready += GetPrimaryDiscordChannel;
+            _client.Ready += async () =>
+            {
+                await _client.SetStatusAsync(UserStatus.Online);
+                _logger.LogInformation("Bot status set to Online.");
+                await GetPrimaryDiscordChannel();
+            };
             _client.MessageReceived += GetDiscordChannelMessage;
         }
 
@@ -65,12 +70,14 @@ namespace SonicInflatorService
             }
         }
 
+
+
         private Task GetPrimaryDiscordChannel()
         {
             _discordChannel = _client.GetChannel(_settings.PrimaryChannelId) as IMessageChannel;
 
             if (_discordChannel == null)
-            { 
+            {
                 _logger.LogError("Primary channel not found.");
                 _tcs.TrySetCanceled();
             }
@@ -95,11 +102,9 @@ namespace SonicInflatorService
             {
                 if (_client.GetChannel(message.Channel.Id) is IMessageChannel channel)
                 {
-
                     await channel.SendFileAsync(_settings.ImagePath, $"DID {message.Author.Mention} SAY SONIC INFLATION?!");
                     _lastResponse = DateTime.Now;
                 }
-
             }
         }
 
@@ -128,7 +133,16 @@ namespace SonicInflatorService
 
                 try
                 {
-                    await _discordChannel.SendFileAsync(_settings.ImagePath);
+                    if (_discordChannel.Id != _settings.PrimaryChannelId)
+                    {
+                        string containmentBreachAlert = ":siren: CONTAINMENT BREACH :siren:";
+                        await _discordChannel.SendFileAsync(_settings.ImagePath, containmentBreachAlert);
+                    }
+                    else
+                    {
+                        await _discordChannel.SendFileAsync(_settings.ImagePath);
+                    }
+
                     _logger.LogInformation("Image sent successfully.");
                 }
                 catch (Exception ex)
