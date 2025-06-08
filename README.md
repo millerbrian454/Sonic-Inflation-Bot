@@ -1,6 +1,6 @@
 # Terms of Service
 
-**Effective Date:** [Insert Date]
+**Effective Date:** 06/08/2025
 
 ## 1. Acceptance of Terms
 
