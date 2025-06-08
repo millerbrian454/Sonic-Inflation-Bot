@@ -80,11 +80,15 @@ namespace SonicInflatorService
         {
             if(message.Author.Id != _client.CurrentUser.Id 
                 && !message.Author.IsBot
-                && _discordChannel != null
                 && _settings != null
+                && _settings.ChannelIds.Contains(message.Channel.Id)
                 && _sonicMentioned.IsMatch(message.Content))
             {
-                await _discordChannel.SendFileAsync(_settings.ImagePath, "DID SOMEONE SAY SONIC INFLATION?!");               
+                if (_client.GetChannel(message.Channel.Id) is IMessageChannel channel)
+                {
+                    await channel.SendFileAsync(_settings.ImagePath, $"DID {message.Author.Mention} SAY SONIC INFLATION?!");
+                }
+
             }
         }
 
