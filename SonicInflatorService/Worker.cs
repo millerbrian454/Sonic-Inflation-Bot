@@ -27,7 +27,7 @@ namespace SonicInflatorService
             _client = new DiscordSocketClient(socketConfig);
             _settings = config.GetSection("Discord").Get<DiscordSettings>();
             _cooldown = TimeSpan.FromSeconds(_settings.ResponseCooldownIntervalSeconds);
-            _lastResponse = DateTime.Now.AddMinutes(-_settings.ResponseCooldownIntervalSeconds);
+            _lastResponse = DateTime.Now.AddSeconds(-_settings.ResponseCooldownIntervalSeconds);
             _client.Log += LogDiscordResponseMessage;
             _client.Ready += async () =>
             {
@@ -111,7 +111,6 @@ namespace SonicInflatorService
                         await channel.SendFileAsync(_settings.DeflatedImagePath, $"SONIC NOOOOOOOOO. {message.Author.Mention} WHAT HAVE YOU DONE?!");
                         _lastResponse = DateTime.Now;
                     }
-                    
                 }
             }
         }
