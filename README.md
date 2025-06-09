@@ -4,7 +4,7 @@
 
 ## 1. Acceptance of Terms
 
-By using this Discord bot application (“App”), you agree to these Terms of Service (“Terms”). If you do not agree, do not use the App.
+By using this Discord bot application (“SonicInflator”), you agree to these Terms of Service (“Terms”). If you do not agree, do not use the App.
 
 ## 2. Description of the Service
 
