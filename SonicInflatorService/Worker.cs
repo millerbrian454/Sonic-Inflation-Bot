@@ -1,7 +1,7 @@
 ﻿using System.Text.RegularExpressions;
 using Discord;
-using Discord.Commands;
 using Discord.WebSocket;
+using SonicInflatorService.Services;
 
 namespace SonicInflatorService
 {
@@ -15,9 +15,13 @@ namespace SonicInflatorService
         private readonly TaskCompletionSource _tcs;
         private readonly TimeSpan _cooldown;
         private DateTime _lastResponse;
-        public Worker(ILogger<Worker> logger, IConfiguration config)
+        private readonly IDiscordMessageService _messageService;
+        private readonly IDiscordChannelService _channelService;
+        public Worker(ILogger<Worker> logger, IConfiguration config, IDiscordMessageService messageService, IDiscordChannelService channelService)
         {
             _logger = logger;
+            _messageService = messageService;
+            _channelService = channelService;
             _tcs = new TaskCompletionSource();
             DiscordSocketConfig socketConfig = new DiscordSocketConfig
             {
@@ -28,7 +32,7 @@ namespace SonicInflatorService
             _settings = config.GetSection("Discord").Get<DiscordSettings>();
             _cooldown = TimeSpan.FromSeconds(_settings.ResponseCooldownIntervalSeconds);
             _lastResponse = DateTime.Now.AddSeconds(-_settings.ResponseCooldownIntervalSeconds);
-            _client.Log += LogDiscordResponseMessage;
+            _client.Log += _messageService.LogDiscordResponseMessage;
             _client.Ready += async () =>
             {
                 await _client.SetStatusAsync(UserStatus.Online);
@@ -36,6 +40,7 @@ namespace SonicInflatorService
                 await GetPrimaryDiscordChannel();
             };
             _client.MessageReceived += GetDiscordChannelMessage;
+            _channelService = channelService;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -56,21 +61,17 @@ namespace SonicInflatorService
                     await _tcs.Task;
                 }
 
-                if (_discordChannel != null)
+                if (_discordChannel == null) continue;
+                try
                 {
-                    try
-                    {
-                        await SendImageOnRandomIntervalAsync(stoppingToken);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "An exception was thrown while inflating sonic");
-                    }
+                    await SendImageOnRandomIntervalAsync(stoppingToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "An exception was thrown while inflating sonic");
                 }
             }
         }
-
-
 
         private Task GetPrimaryDiscordChannel()
         {
@@ -89,29 +90,41 @@ namespace SonicInflatorService
             return Task.CompletedTask;
         }
 
-        private static readonly Regex _sonicMentioned = new Regex(@"\b(sonic|inflat\w*)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex SonicMentioned = new Regex(@"\b(sonic|inflat\w*)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex SanicMentioned = new Regex(@"\b(sanic|sonichu\w*)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private async Task GetDiscordChannelMessage(SocketMessage message)
         {
-            if(_lastResponse.Add(_cooldown) <= DateTime.Now
-                && message.Author.Id != _client.CurrentUser.Id 
-                && !message.Author.IsBot
-                && _settings != null
-                && _settings.ChannelIds.Contains(message.Channel.Id))
+            try
             {
-                if (_client.GetChannel(message.Channel.Id) is IMessageChannel channel)
+                if (_settings != null && _messageService.IsValidMessage(message, _settings, _lastResponse, _cooldown, _client.CurrentUser.Id))
                 {
-                    if (_sonicMentioned.IsMatch(message.Content))
+                    if (_client.GetChannel(message.Channel.Id) is IMessageChannel channel)
                     {
-                        await channel.SendFileAsync(_settings.InflatedImagePath, $"DID {message.Author.Mention} SAY SONIC INFLATION?!");
-                        _lastResponse = DateTime.Now;
-                    }
-                    else if(message.CleanContent == "ALAKAGOO! 👉")
-                    {
-                        await channel.SendFileAsync(_settings.DeflatedImagePath, $"SONIC NOOOOOOOOO. {message.Author.Mention} WHAT HAVE YOU DONE?!");
-                        _lastResponse = DateTime.Now;
+                        if (SonicMentioned.IsMatch(message.Content))
+                        {
+                            await channel.SendFileAsync(_settings.InflatedImagePath,
+                                $"DID {message.Author.Mention} SAY SONIC INFLATION?!");
+                            _lastResponse = DateTime.Now;
+                        }
+                        else if (message.CleanContent == "ALAKAGOO! 👉")
+                        {
+                            await channel.SendFileAsync(_settings.DeflatedImagePath,
+                                $"SONIC NOOOOOOOOO. {message.Author.Mention} WHAT HAVE YOU DONE?!");
+                            _lastResponse = DateTime.Now;
+                        }
+                        else if (SanicMentioned.IsMatch(message.Content))
+                        {
+                            await channel.SendFileAsync(_settings.SonichuPathToDamnation,
+                                $"OH NO. {message.Author.Mention} HAS SUMMONED SANIC!");
+                            _lastResponse = DateTime.Now;
+                        }
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An exception was thrown while attempting to respond to a user");
             }
         }
 
@@ -129,69 +142,34 @@ namespace SonicInflatorService
 
             while (!stoppingToken.IsCancellationRequested)
             {
-                int delayMinutes =  _random.Next(_settings.RandomIntervalMinutesMinValue, _settings.RandomIntervalMinutesMaxValue + 1);
-                int delayMilliseconds = delayMinutes * 60 * 1000;
-                
-                ulong selectedChannelId = SelectRandomChannelId();
-                _discordChannel = _client.GetChannel(selectedChannelId) as IMessageChannel;
-
-                _logger.LogInformation($"Waiting {delayMinutes} minutes before sending next image...");
-                await Task.Delay(delayMilliseconds, stoppingToken);
-
                 try
                 {
+                    int delayMinutes =  _random.Next(_settings.RandomIntervalMinutesMinValue, _settings.RandomIntervalMinutesMaxValue + 1);
+                    int delayMilliseconds = delayMinutes * 60 * 1000;
+                
+                    ulong selectedChannelId = _channelService.SelectRandomChannelId(_settings, _random);
+                    _discordChannel = _client.GetChannel(selectedChannelId) as IMessageChannel;
+
+                    _logger.LogInformation($"Waiting {delayMinutes} minutes before sending next image...");
+
+                    await Task.Delay(delayMilliseconds, stoppingToken);
+                    IUserMessage? fileSendResult;
                     if (_discordChannel.Id != _settings.PrimaryChannelId)
                     {
                         string containmentBreachAlert = $"<a:{_settings.SirenEmojiName}:{_settings.SirenEmojiId}> CONTAINMENT BREACH <a:{_settings.SirenEmojiName}:{_settings.SirenEmojiId}>";
-                        await _discordChannel.SendFileAsync(_settings.InflatedImagePath, containmentBreachAlert);
+                        fileSendResult = await _discordChannel.SendFileAsync(_settings.InflatedImagePath, containmentBreachAlert);
                     }
                     else
                     {
-                        await _discordChannel.SendFileAsync(_settings.InflatedImagePath);
+                        fileSendResult = await _discordChannel.SendFileAsync(_settings.InflatedImagePath);
                     }
-
-                    _logger.LogInformation("Image sent successfully.");
+                    _logger.LogInformation("Sonic inflated successfully in channel: {0}", fileSendResult.Channel.Name);
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Failed to send image.");
                 }
             }
-        }
-
-        private Task LogDiscordResponseMessage(LogMessage discordLogMessage)
-        {
-            if (discordLogMessage.Exception is CommandException cmdException)
-            {
-                _logger.LogError($"[Command/{discordLogMessage.Severity}] {cmdException.Command.Aliases.First()}"
-                         + $" failed to execute in {cmdException.Context.Channel}.");
-            }
-            else
-            {
-                _logger.LogInformation($"Discord API Response: [{discordLogMessage.Severity}]{discordLogMessage}");
-            }
-                
-
-            return Task.CompletedTask;
-        }
-
-        private ulong SelectRandomChannelId()
-        {
-            ulong selectedChannelId;
-            int randomChannelChancePercentage = _settings.RandomChannelPercentageChance;
-            bool randomChannelChance = _random.Next(100) < randomChannelChancePercentage;
-
-            if (randomChannelChance)
-            {
-                selectedChannelId = _settings.ChannelIds[_random.Next(_settings.ChannelIds.Count)];
-                _logger.LogInformation($"[{randomChannelChancePercentage}% chance] Randomly selected channel.");
-            }
-            else
-            {
-                selectedChannelId = _settings.PrimaryChannelId;
-            }
-
-            return selectedChannelId;
         }
     }
 }
