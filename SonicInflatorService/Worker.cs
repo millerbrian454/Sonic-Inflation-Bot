@@ -142,7 +142,7 @@ namespace SonicInflatorService
                 {
                     if (_discordChannel.Id != _settings.PrimaryChannelId)
                     {
-                        string containmentBreachAlert = ":siren: CONTAINMENT BREACH :siren:";
+                        string containmentBreachAlert = $"<a:{_settings.SirenEmojiName}:{_settings.SirenEmojiId}> CONTAINMENT BREACH <a:{_settings.SirenEmojiName}:{_settings.SirenEmojiId}>";
                         await _discordChannel.SendFileAsync(_settings.InflatedImagePath, containmentBreachAlert);
                     }
                     else
