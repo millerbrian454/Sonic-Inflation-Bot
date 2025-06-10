@@ -1,9 +1,17 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.13.35931.197 d17.13
+VisualStudioVersion = 17.13.35931.197
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SonicInflatorService", "SonicInflatorService\SonicInflatorService.csproj", "{895543E7-A92E-4E17-9CC5-4CE8CC60BA56}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SonicInflatorService.Core", "SonicInflatorService.Core\SonicInflatorService.Core.csproj", "{59901BA7-F122-4D37-9BC0-D2BC09A2597B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SonicInflatorService.Infrastructure", "SonicInflatorService.Infrastructure\SonicInflatorService.Infrastructure.csproj", "{657C8FEE-AEFA-45FF-90C6-10A2BC3E128A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SonicInflatorService.Handlers", "SonicInflatorService.Handlers\SonicInflatorService.Handlers.csproj", "{8C6343B1-8072-4653-B301-0A1CCB84887F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SonicInflatorService.DependencyInjection", "SonicInflatorService.DependencyInjection\SonicInflatorService.DependencyInjection.csproj", "{2F44E52C-3DA7-4377-A9A1-760BE01374EC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +23,22 @@ Global
 		{895543E7-A92E-4E17-9CC5-4CE8CC60BA56}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{895543E7-A92E-4E17-9CC5-4CE8CC60BA56}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{895543E7-A92E-4E17-9CC5-4CE8CC60BA56}.Release|Any CPU.Build.0 = Release|Any CPU
+		{59901BA7-F122-4D37-9BC0-D2BC09A2597B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{59901BA7-F122-4D37-9BC0-D2BC09A2597B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{59901BA7-F122-4D37-9BC0-D2BC09A2597B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{59901BA7-F122-4D37-9BC0-D2BC09A2597B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{657C8FEE-AEFA-45FF-90C6-10A2BC3E128A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{657C8FEE-AEFA-45FF-90C6-10A2BC3E128A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{657C8FEE-AEFA-45FF-90C6-10A2BC3E128A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{657C8FEE-AEFA-45FF-90C6-10A2BC3E128A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8C6343B1-8072-4653-B301-0A1CCB84887F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8C6343B1-8072-4653-B301-0A1CCB84887F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8C6343B1-8072-4653-B301-0A1CCB84887F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8C6343B1-8072-4653-B301-0A1CCB84887F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2F44E52C-3DA7-4377-A9A1-760BE01374EC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2F44E52C-3DA7-4377-A9A1-760BE01374EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2F44E52C-3DA7-4377-A9A1-760BE01374EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2F44E52C-3DA7-4377-A9A1-760BE01374EC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
