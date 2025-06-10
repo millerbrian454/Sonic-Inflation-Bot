@@ -1,5 +1,7 @@
 using Serilog;
-using SonicInflatorService;
+using Autofac;
+using Autofac.Extensions.DependencyInjection;
+using SonicInflatorService.DependencyInjection;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.File("logs/inflator_logs.txt", rollingInterval: RollingInterval.Day)
@@ -8,13 +10,28 @@ Log.Logger = new LoggerConfiguration()
 try
 {
     Log.Information("Starting up...THE INFLATOR");
-    var builder = Host.CreateApplicationBuilder(args);
-    builder.Services.AddHostedService<Worker>();
-    builder.Logging.ClearProviders();
-    builder.Logging.AddSerilog();
 
-    var host = builder.Build();
-    host.Run();
+    Host.CreateDefaultBuilder(args)
+        .UseServiceProviderFactory(new AutofacServiceProviderFactory())
+        .UseSerilog()
+        .ConfigureAppConfiguration((context, config) =>
+        {
+            config
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .AddJsonFile($"appsettings.{context.HostingEnvironment.EnvironmentName}.json", optional: true, reloadOnChange: true)
+            .AddEnvironmentVariables();
+        })
+        .ConfigureContainer<ContainerBuilder>(cb =>
+        {
+            cb.RegisterModule<BotModule>();
+            cb.RegisterModule<EventHandlersModule>();
+        })
+        .Build()
+        .Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Bot terminated.");
 }
 finally
 {

@@ -8,12 +8,24 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Autofac" Version="8.3.0" />
+    <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="10.0.0" />
     <PackageReference Include="Discord.Net" Version="3.17.4" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.5" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.5" />
     <PackageReference Include="Serilog" Version="4.3.0" />
+    <PackageReference Include="Serilog.Extensions.Hosting" Version="9.0.0" />
     <PackageReference Include="Serilog.Extensions.Logging" Version="9.0.2" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SonicInflatorService.Core\SonicInflatorService.Core.csproj" />
+    <ProjectReference Include="..\SonicInflatorService.DependencyInjection\SonicInflatorService.DependencyInjection.csproj" />
+    <ProjectReference Include="..\SonicInflatorService.Handlers\SonicInflatorService.Handlers.csproj" />
+    <ProjectReference Include="..\SonicInflatorService.Infrastructure\SonicInflatorService.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>

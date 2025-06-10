@@ -1,4 +1,4 @@
-﻿namespace SonicInflatorService
+﻿namespace SonicInflatorService.Core
 {
     public class DiscordSettings
     {
