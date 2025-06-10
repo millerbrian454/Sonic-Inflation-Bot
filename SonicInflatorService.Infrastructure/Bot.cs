@@ -11,14 +11,16 @@ namespace SonicInflatorService.Infrastructure
         private readonly IBotContext _context;
         private readonly IClientWatcher _watcher;
         private readonly IEnumerable<IEventBinding> _bindings;
+        private readonly IChannelTracker _tracker;
         private readonly Random _random = new();
 
-        public Bot(ILogger<Bot> logger, IBotContext context, IClientWatcher watcher, IEnumerable<IEventBinding> bindings)
+        public Bot(ILogger<Bot> logger, IBotContext context, IClientWatcher watcher, IEnumerable<IEventBinding> bindings, IChannelTracker tracker)
         {
             _logger = logger;
             _context = context;
             _watcher = watcher;
             _bindings = bindings;
+            _tracker = tracker;
         }
 
         protected override async Task ExecuteAsync(CancellationToken cancellationToken)
@@ -81,7 +83,8 @@ namespace SonicInflatorService.Infrastructure
                     //containment breach
                     text = $"<a:{_context.Settings.SirenEmojiName}:{_context.Settings.SirenEmojiId}> CONTAINMENT BREACH <a:{_context.Settings.SirenEmojiName}:{_context.Settings.SirenEmojiId}>";
                 }
-                
+
+                _tracker.TrackLastImage(channelId, _context.Settings.InflatedImagePath);
                 await channel.SendFileAsync(_context.Settings.InflatedImagePath, text);
                 _logger.LogInformation("Image sent.");
             }

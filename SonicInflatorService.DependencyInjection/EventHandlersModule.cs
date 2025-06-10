@@ -1,5 +1,6 @@
 ﻿using Autofac;
 using SonicInflatorService.Core;
+using SonicInflatorService.Handlers;
 using SonicInflatorService.Handlers.EventHandlers;
 using SonicInflatorService.Handlers.MessageProcessors;
 using Module = Autofac.Module;
@@ -23,11 +24,18 @@ namespace SonicInflatorService.DependencyInjection
                    .InstancePerLifetimeScope();
 
             builder.RegisterType<SonicInflationMessageProcessor>()
-                .AsImplementedInterfaces();                
+                .AsImplementedInterfaces()
+                .InstancePerLifetimeScope();
             builder.RegisterType<SonicDeflationMessageProcessor>()
-                .AsImplementedInterfaces();
+                .AsImplementedInterfaces()
+                .InstancePerLifetimeScope();
             builder.RegisterType<SonichuMessageProcessor>()
-                .AsImplementedInterfaces();
+                .AsImplementedInterfaces()
+                .InstancePerLifetimeScope();
+
+            builder.RegisterType<ChannelTracker>()
+                .AsImplementedInterfaces()
+                .InstancePerLifetimeScope();
         }
     }
 }

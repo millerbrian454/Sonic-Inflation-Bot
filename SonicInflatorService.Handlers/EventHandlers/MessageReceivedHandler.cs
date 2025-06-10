@@ -14,6 +14,7 @@ namespace SonicInflatorService.Handlers.EventHandlers
         public MessageReceivedHandler(ILoggerFactory loggerFactory, IBotContext context, IList<IMessageProcessor> processors) : base(loggerFactory, context)
         {
             _processors = processors;
+            _cooldown = TimeSpan.FromSeconds(Context.Settings.ResponseCooldownIntervalSeconds);
         }
 
         public override async Task HandleAsync(SocketMessage message)

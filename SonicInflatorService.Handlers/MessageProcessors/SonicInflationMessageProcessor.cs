@@ -7,12 +7,16 @@ namespace SonicInflatorService.Handlers.MessageProcessors
     public class SonicInflationMessageProcessor : MessageProcessorBase
     {
         private const string PATTERN = @"\b(sonic|inflat\w*)\b";
-        public SonicInflationMessageProcessor(ILoggerFactory loggerFactory, IBotContext context) : base(loggerFactory, context, PATTERN)
+        private readonly IChannelTracker _tracker;
+
+        public SonicInflationMessageProcessor(ILoggerFactory loggerFactory, IBotContext context, IChannelTracker tracker) : base(loggerFactory, context, PATTERN)
         {
+            _tracker = tracker;
         }
 
         public override Task ProcessAsync(SocketMessage message)
         {
+            _tracker.TrackLastImage(message.Channel.Id, Context.Settings.InflatedImagePath);
             return message.Channel.SendFileAsync(Context.Settings.InflatedImagePath, $"DID {message.Author.Mention} SAY SONIC INFLATION?!");
         }
     }

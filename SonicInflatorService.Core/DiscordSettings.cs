@@ -10,6 +10,7 @@
         public string? InflatedImagePath { get; set; }
         public string? DeflatedImagePath { get; set; }
         public string? SonichuImagePath { get; set; }
+        public string? CurseYeHaMeHaImagePath { get; set; }
         public int RandomIntervalMinutesMaxValue { get; set; }
         public int RandomIntervalMinutesMinValue { get; set; }
         public int RandomChannelPercentageChance { get; set; }
