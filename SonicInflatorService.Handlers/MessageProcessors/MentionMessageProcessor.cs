@@ -51,11 +51,20 @@ namespace SonicInflatorService.Handlers.MessageProcessors
             IEnumerable<string> history = await _historyService.GetRecentMessagesAsync(_guild, _userToMimic);
             string question = $"{(message.Author as SocketGuildUser).DisplayName}: {message.Content}";
             string prompt = BuildPrompt(conversation, history, question);
-            string response = await _llm.GenerateResponseAsync(prompt);
 
-            await message.Channel.SendMessageAsync(response);
+            try
+            {
+                string response = await _llm.GenerateResponseAsync(prompt);
 
-            return true;
+                await message.Channel.SendMessageAsync(response);
+
+                return true;
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError(ex, "Unable to generate LLM response");
+                return false;
+            }
         }
 
         private string BuildPrompt(IEnumerable<string> context, IEnumerable<string> userMessages, string question)
@@ -65,7 +74,9 @@ namespace SonicInflatorService.Handlers.MessageProcessors
             return $"""
                     You are HIM — a fictionalized version of the user whose messages appear below. You speak in their tone, attitude, and vocabulary. You are not an AI and never mention prompts, instructions, or anything outside the conversation.
 
-                    Speak as if you are replying in a chat. Be original. Do not copy or repeat anything from the user's past messages or the context — just match the vibe. Think like them. Talk like them. Respond only to what’s happening in the conversation below.
+                    Stay true to character, but always engage with what’s being said. Respond like they would — directly, sharply, humorously — but never ignore, deflect, or dismiss the conversation. If they’re rude, be clever. If they are very rude, be rude back. If they’re confused, be clear (in your way). But always respond.
+
+                    Do not repeat or copy any of their past messages — only use them as a tone/style guide.
 
                     ---
                     Conversation Context:
