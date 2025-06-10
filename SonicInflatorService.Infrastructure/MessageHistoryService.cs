@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Discord;
+﻿using Discord;
 using Discord.WebSocket;
+using Serilog;
 using SonicInflatorService.Core;
 
 namespace SonicInflatorService.Infrastructure
@@ -17,19 +13,30 @@ namespace SonicInflatorService.Infrastructure
         {
             _context = context;
         }
+
         public async Task<IEnumerable<string>> GetRecentMessagesAsync(ITextChannel channel, int limit = 50)
         {
-            List<string> result = new List<string>();
-           
-            IEnumerable<IMessage> messages = await channel.GetMessagesAsync(limit: limit).FlattenAsync();
+            try
+            {
+                List<string> result = new List<string>();
 
-            result.AddRange(messages
-                .Where(m => !string.IsNullOrWhiteSpace(m.Content))
-                .OrderBy(m => m.Timestamp)
-                .Take(limit)
-                .Select(m => $"{(m.Author as SocketGuildUser).DisplayName}: {m.Content.Replace($"{_context.Client.CurrentUser.Id}", "HIM").Replace("SONIC-INFLATOR","HIM")}"));            
+                IEnumerable<IMessage> messages = await channel.GetMessagesAsync(limit: limit).FlattenAsync();
 
-            return result;
+                result.AddRange(messages
+                    .Where(m => !string.IsNullOrWhiteSpace(m.Content))
+                    .OrderBy(m => m.Timestamp)
+                    .Take(limit)
+                    .Select(m =>
+                        $"{(m.Author as SocketGuildUser).DisplayName}: {m.Content.Replace($"{_context.Client.CurrentUser.Id}", "HIM").Replace("SONIC-INFLATOR", "HIM")}"));
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "An exception was thrown while getting the recent messages");
+                return new List<string>();
+            }
+
         }
         public async Task<IEnumerable<string>> GetRecentMessagesAsync(IGuild guild, IUser user, int limit = 50)
         {

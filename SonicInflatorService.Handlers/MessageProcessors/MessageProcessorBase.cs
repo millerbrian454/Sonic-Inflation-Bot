@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
+﻿using System.Text.RegularExpressions;
 using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
 using SonicInflatorService.Core;
@@ -22,6 +17,7 @@ namespace SonicInflatorService.Handlers.MessageProcessors
             Context = context;
             _regex = new Regex(pattern, RegexOptions.IgnoreCase | RegexOptions.Compiled);
         }
+
         public Task<bool> TryProcessAsync(SocketMessage message)
         {
             bool isMatch = _regex.IsMatch(message.CleanContent);
