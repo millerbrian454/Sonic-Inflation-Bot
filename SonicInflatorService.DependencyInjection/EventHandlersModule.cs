@@ -1,5 +1,4 @@
 ﻿using Autofac;
-using SonicInflatorService.Core;
 using SonicInflatorService.Handlers;
 using SonicInflatorService.Handlers.EventHandlers;
 using SonicInflatorService.Handlers.MessageProcessors;

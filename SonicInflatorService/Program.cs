@@ -2,7 +2,6 @@ using Serilog;
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using SonicInflatorService.DependencyInjection;
-using SonicInflatorService.Core;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.File("logs/inflator_logs.txt", rollingInterval: RollingInterval.Day)

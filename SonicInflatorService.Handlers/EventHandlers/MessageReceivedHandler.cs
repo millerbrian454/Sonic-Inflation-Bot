@@ -1,5 +1,4 @@
-﻿using System.Text.RegularExpressions;
-using Discord.WebSocket;
+﻿using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
 using SonicInflatorService.Core;
 
@@ -31,15 +30,13 @@ namespace SonicInflatorService.Handlers.EventHandlers
                 {
                     bool result = await processor.TryProcessAsync(message);
 
-                    if (result)
+                    if (!result) continue;
+                    if(!isWhitelistedUser)
                     {
-                        if(!isWhitelistedUser)
-                        {
-                            _lastResponse = DateTime.Now;
-                        }
-
-                        break;
+                        _lastResponse = DateTime.Now;
                     }
+
+                    break;
                 }
             }
         }

@@ -1,11 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http.Headers;
+﻿using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
+using Discord.Commands;
 using Microsoft.Extensions.Configuration;
+using Serilog;
 using SonicInflatorService.Core;
 
 namespace SonicInflatorService.Infrastructure
@@ -30,6 +28,7 @@ namespace SonicInflatorService.Infrastructure
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
         }
 
+        
         public async Task<string> GenerateResponseAsync(string prompt)
         {
             var request = new
@@ -47,8 +46,17 @@ namespace SonicInflatorService.Infrastructure
             StringContent? content = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json");
             HttpResponseMessage? response = await _httpClient.PostAsync("chat/completions", content);
             string? result = await response.Content.ReadAsStringAsync();
+            JsonDocument? json;
+            if (!string.IsNullOrEmpty(result))
+            {
+                json = JsonDocument.Parse(result);
+            }
+            else
+            {
+                Log.Error("Result string from OpenAI API response was null");
+                return string.Empty;
+            }
 
-            JsonDocument? json = JsonDocument.Parse(result);
             return json.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString()!;
         }
     

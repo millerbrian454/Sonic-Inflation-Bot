@@ -33,6 +33,7 @@ namespace SonicInflatorService.Handlers.MessageProcessors
             _userToMimic = _guild?.GetUser(_context.Settings.MimicUserId);
         }
 
+        
         public async Task<bool> TryProcessAsync(SocketMessage message)
         {
             if (message is not SocketUserMessage userMessage)
@@ -41,7 +42,7 @@ namespace SonicInflatorService.Handlers.MessageProcessors
             if (message.Channel is not SocketTextChannel textChannel)
                 return false;
 
-            if (!message.MentionedUsers.Any(u => u.Id == _context.Client.CurrentUser.Id))
+            if (message.MentionedUsers.Any(u => u.Id != _context.Client.CurrentUser.Id))
                 return false;
 
 
@@ -51,15 +52,19 @@ namespace SonicInflatorService.Handlers.MessageProcessors
 
 
             IEnumerable<string> history = await _historyService.GetRecentMessagesAsync(_guild, _userToMimic);
-            string question = $"{(message.Author as SocketGuildUser).DisplayName}: {message.Content}";
+            string question = $"{(message.Author as SocketGuildUser)?.DisplayName}: {message.Content}";
             string prompt = BuildPrompt(conversation, history, question);
 
             try
             {
                 string response = await _llm.GenerateResponseAsync(prompt);
 
+                if (string.IsNullOrEmpty(response))
+                {
+                    _logger.LogError("Failed to generate AI response");
+                    return false;
+                }
                 await message.Channel.SendMessageAsync(response);
-
                 return true;
             }
             catch(Exception ex)

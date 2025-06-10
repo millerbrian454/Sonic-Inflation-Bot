@@ -2,7 +2,6 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using SonicInflatorService.Core;
-using static System.Formats.Asn1.AsnWriter;
 
 namespace SonicInflatorService.Infrastructure
 {
