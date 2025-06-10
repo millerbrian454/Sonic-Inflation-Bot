@@ -1,9 +1,7 @@
-﻿using System.Reflection;
-using Autofac;
+﻿using Autofac;
 using Discord.WebSocket;
 using Discord;
 using SonicInflatorService.Core;
-using SonicInflatorService.Handlers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.DependencyInjection;

@@ -56,7 +56,6 @@ namespace SonicInflatorService.Infrastructure
                 {
                     _logger.LogError(ex, "An exception was thrown while inflating sonic");
                 }
-
                 TimeSpan delay = GetRandomDelay();
                 channelId = SelectRandomChannelId();
                 _logger.LogInformation($"Waiting {delay.TotalMinutes} minutes before sending next image...");
