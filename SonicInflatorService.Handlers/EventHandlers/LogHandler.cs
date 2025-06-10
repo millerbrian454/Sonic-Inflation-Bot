@@ -3,7 +3,7 @@ using Discord.Commands;
 using Microsoft.Extensions.Logging;
 using SonicInflatorService.Core;
 
-namespace SonicInflatorService.Handlers
+namespace SonicInflatorService.Handlers.EventHandlers
 {
     public class LogHandler : EventHandlerBase<LogMessage>
     {
