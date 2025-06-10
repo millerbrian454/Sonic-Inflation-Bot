@@ -6,7 +6,7 @@ namespace SonicInflatorService.Handlers.MessageProcessors
 {
     public class SonicInflationMessageProcessor : MessageProcessorBase
     {
-        private const string PATTERN = @"\b(sonic|inflat\w*)\b";
+        private const string PATTERN = @"^(?!.*@sonic-inflator).*?\b(sonic|inflat\w*)\b";
         private readonly IChannelTracker _tracker;
 
         public SonicInflationMessageProcessor(ILoggerFactory loggerFactory, IBotContext context, IChannelTracker tracker) : base(loggerFactory, context, PATTERN)
