@@ -10,12 +10,12 @@ namespace SonicInflatorService.Handlers
         private readonly TimeSpan _cooldown;
         private DateTime _lastResponse;
         private static readonly Regex _sonicMentioned = new Regex(@"\b(sonic|inflat\w*)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-        private static readonly Regex _sanicMentioned = new Regex(@"\b(sanic|sonichu\w*)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex _sanicMentioned = new Regex(@"\b(sanic|sonichu)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         public MessageReceivedHandler(ILoggerFactory loggerFactory, IBotContext context) : base(loggerFactory, context)
         {
         }
 
-        public async override Task HandleAsync(SocketMessage message)
+        public override async Task HandleAsync(SocketMessage message)
         {
             bool isWhitelistedUser = Context.Settings.ProfessionalSonicWranglerUserIds.Contains(message.Author.Id);
 

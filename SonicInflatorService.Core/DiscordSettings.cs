@@ -14,6 +14,6 @@
         public int RandomIntervalMinutesMinValue { get; set; }
         public int RandomChannelPercentageChance { get; set; }
         public int ResponseCooldownIntervalSeconds { get; set; }
-        public required List<ulong> ProfessionalSonicWranglerUserIds { get; set; } //currently rowyn, webley, and myself
+        public required List<ulong> ProfessionalSonicWranglerUserIds { get; set; }
     }
 }
