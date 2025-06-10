@@ -1,5 +1,4 @@
-﻿using System.Reflection;
-using Autofac;
+﻿using Autofac;
 using SonicInflatorService.Core;
 using SonicInflatorService.Handlers;
 using Module = Autofac.Module;
