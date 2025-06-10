@@ -5,6 +5,9 @@
         public required string Token { get; set; }
         public ulong PrimaryChannelId { get; set; }
         public ulong SirenEmojiId { get; set; }
+        public ulong GuildId { get; set; }
+        public ulong MimicUserId { get; set; }
+
         public string SirenEmojiName { get; set; }
         public required List<ulong> ChannelIds { get; set; }
         public string? InflatedImagePath { get; set; }

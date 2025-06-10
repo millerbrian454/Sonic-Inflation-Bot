@@ -2,6 +2,7 @@ using Serilog;
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using SonicInflatorService.DependencyInjection;
+using SonicInflatorService.Core;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.File("logs/inflator_logs.txt", rollingInterval: RollingInterval.Day)
@@ -11,7 +12,7 @@ try
 {
     Log.Information("Starting up...THE INFLATOR");
 
-    Host.CreateDefaultBuilder(args)
+    IHost host = Host.CreateDefaultBuilder(args)
         .UseServiceProviderFactory(new AutofacServiceProviderFactory())
         .UseSerilog()
         .ConfigureAppConfiguration((context, config) =>
@@ -25,9 +26,11 @@ try
         {
             cb.RegisterModule<BotModule>();
             cb.RegisterModule<EventHandlersModule>();
+            cb.RegisterModule<ServicesModule>();
         })
-        .Build()
-        .Run();
+        .Build();
+
+    await host.RunAsync();
 }
 catch (Exception ex)
 {

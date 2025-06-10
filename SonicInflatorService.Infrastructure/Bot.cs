@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using SonicInflatorService.Core;
+using static System.Formats.Asn1.AsnWriter;
 
 namespace SonicInflatorService.Infrastructure
 {
@@ -11,15 +12,17 @@ namespace SonicInflatorService.Infrastructure
         private readonly IBotContext _context;
         private readonly IClientWatcher _watcher;
         private readonly IEnumerable<IEventBinding> _bindings;
+        private readonly IEnumerable<IInitializable> _initializables;
         private readonly IChannelTracker _tracker;
         private readonly Random _random = new();
 
-        public Bot(ILogger<Bot> logger, IBotContext context, IClientWatcher watcher, IEnumerable<IEventBinding> bindings, IChannelTracker tracker)
+        public Bot(ILogger<Bot> logger, IBotContext context, IClientWatcher watcher, IEnumerable<IEventBinding> bindings, IEnumerable<IInitializable> initializables, IChannelTracker tracker)
         {
             _logger = logger;
             _context = context;
             _watcher = watcher;
             _bindings = bindings;
+            _initializables = initializables;
             _tracker = tracker;
         }
 
@@ -28,9 +31,14 @@ namespace SonicInflatorService.Infrastructure
             await RegisterAllEventBindingsAsync();
             await LoginAndStartAsync(cancellationToken);
             await _watcher.WaitForReadyAsync(cancellationToken);
+            await InitializeAllAsync(cancellationToken);
             await DoWorkAsync(cancellationToken);
         }
 
+        private async Task InitializeAllAsync(CancellationToken cancellationToken)
+        {
+            await Task.WhenAll(_initializables.Select(b => b.InitializeAsync(cancellationToken)));
+        }
         private async Task RegisterAllEventBindingsAsync()
         {
             await Task.WhenAll(_bindings.Select(b => b.RegisterAsync()));

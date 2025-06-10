@@ -18,7 +18,11 @@ namespace SonicInflatorService.DependencyInjection
             builder
             .Register(context => new DiscordSocketClient(new DiscordSocketConfig
             {
-                GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.MessageContent
+                GatewayIntents = GatewayIntents.AllUnprivileged
+                | GatewayIntents.MessageContent
+                | GatewayIntents.Guilds
+                | GatewayIntents.GuildMessages
+                | GatewayIntents.GuildMembers
             })).AsSelf().SingleInstance();
 
             builder
@@ -45,9 +49,7 @@ namespace SonicInflatorService.DependencyInjection
             builder
             .RegisterType<Bot>()
             .As<IHostedService>()
-            .SingleInstance();
-
-
+            .SingleInstance();      
         }
     }
 }
