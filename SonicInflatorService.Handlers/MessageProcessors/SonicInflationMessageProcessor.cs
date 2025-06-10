@@ -5,7 +5,7 @@ using SonicInflatorService.Core;
 namespace SonicInflatorService.Handlers.MessageProcessors
 {
     public class SonicInflationMessageProcessor : MessageProcessorBase
-    {
+    {        
         private const string PATTERN = @"^(?!.*@sonic-inflator).*?\b(sonic|inflat\w*)\b";
         private readonly IChannelTracker _tracker;
 
