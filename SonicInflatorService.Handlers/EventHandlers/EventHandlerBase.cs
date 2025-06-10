@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using SonicInflatorService.Core;
 
-namespace SonicInflatorService.Handlers
+namespace SonicInflatorService.Handlers.EventHandlers
 {
     public abstract class EventHandlerBase<T> : IEventHandler<T>, IEventBinding
     {

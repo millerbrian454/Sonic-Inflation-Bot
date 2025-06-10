@@ -1,6 +1,7 @@
 ﻿using Autofac;
 using SonicInflatorService.Core;
-using SonicInflatorService.Handlers;
+using SonicInflatorService.Handlers.EventHandlers;
+using SonicInflatorService.Handlers.MessageProcessors;
 using Module = Autofac.Module;
 
 namespace SonicInflatorService.DependencyInjection
@@ -10,17 +11,23 @@ namespace SonicInflatorService.DependencyInjection
         protected override void Load(ContainerBuilder builder)
         {
             builder.RegisterType<ReadyHandler>()
-                   .As<IEventBinding>()
-                   .As<IClientWatcher>()
+                   .AsImplementedInterfaces()
                    .InstancePerLifetimeScope();
 
             builder.RegisterType<LogHandler>()
-                   .As<IEventBinding>()
+                   .AsImplementedInterfaces()
                    .InstancePerLifetimeScope();
 
             builder.RegisterType<MessageReceivedHandler>()
-                   .As<IEventBinding>()
+                   .AsImplementedInterfaces()
                    .InstancePerLifetimeScope();
+
+            builder.RegisterType<SonicInflationMessageProcessor>()
+                .AsImplementedInterfaces();                
+            builder.RegisterType<SonicDeflationMessageProcessor>()
+                .AsImplementedInterfaces();
+            builder.RegisterType<SonichuMessageProcessor>()
+                .AsImplementedInterfaces();
         }
     }
 }
