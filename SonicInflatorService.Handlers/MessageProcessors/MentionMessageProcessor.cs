@@ -48,6 +48,8 @@ namespace SonicInflatorService.Handlers.MessageProcessors
             SocketCommandContext context = new SocketCommandContext(_context.Client, userMessage);
 
             IEnumerable<string> conversation = await _historyService.GetRecentMessagesAsync(textChannel);
+
+
             IEnumerable<string> history = await _historyService.GetRecentMessagesAsync(_guild, _userToMimic);
             string question = $"{(message.Author as SocketGuildUser).DisplayName}: {message.Content}";
             string prompt = BuildPrompt(conversation, history, question);

@@ -11,6 +11,12 @@ namespace SonicInflatorService.Infrastructure
 {
     public class MessageHistoryService : IMessageHistoryService
     {
+        private readonly IBotContext _context;
+
+        public MessageHistoryService(IBotContext context)
+        {
+            _context = context;
+        }
         public async Task<IEnumerable<string>> GetRecentMessagesAsync(ITextChannel channel, int limit = 50)
         {
             List<string> result = new List<string>();
@@ -21,7 +27,7 @@ namespace SonicInflatorService.Infrastructure
                 .Where(m => !string.IsNullOrWhiteSpace(m.Content))
                 .OrderBy(m => m.Timestamp)
                 .Take(limit)
-                .Select(m => $"{(m.Author as SocketGuildUser).DisplayName}: {m.Content}"));            
+                .Select(m => $"{(m.Author as SocketGuildUser).DisplayName}: {m.Content.Replace($"{_context.Client.CurrentUser.Id}", "HIM").Replace("SONIC-INFLATOR","HIM")}"));            
 
             return result;
         }
