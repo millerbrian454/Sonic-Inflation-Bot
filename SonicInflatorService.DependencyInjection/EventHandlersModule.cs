@@ -33,6 +33,10 @@ namespace SonicInflatorService.DependencyInjection
                 .AsImplementedInterfaces()
                 .InstancePerLifetimeScope();
 
+            builder.RegisterType<MentionMessageProcessor>()
+                .AsImplementedInterfaces()
+                .InstancePerLifetimeScope();
+
             builder.RegisterType<ChannelTracker>()
                 .AsImplementedInterfaces()
                 .InstancePerLifetimeScope();
