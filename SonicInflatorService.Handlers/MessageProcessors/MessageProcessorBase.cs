@@ -1,5 +1,4 @@
 ﻿using System.Text.RegularExpressions;
-using Discord.Commands;
 using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
 using SonicInflatorService.Core;

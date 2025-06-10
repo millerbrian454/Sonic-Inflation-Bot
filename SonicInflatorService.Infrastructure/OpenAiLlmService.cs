@@ -1,7 +1,6 @@
 ﻿using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using Discord.Commands;
 using Microsoft.Extensions.Configuration;
 using Serilog;
 using SonicInflatorService.Core;
@@ -31,34 +30,40 @@ namespace SonicInflatorService.Infrastructure
         
         public async Task<string> GenerateResponseAsync(string prompt)
         {
-            var request = new
+            try
             {
-                model = _model,
-                messages = new[]
+                var request = new
                 {
-                    new { role = "system", content = "You are mimicking a Discord user." },
-                    new { role = "user", content = prompt }
-                },
-                temperature = 0.7,
-                max_tokens = 512
-            };
+                    model = _model,
+                    messages = new[]
+                    {
+                        new { role = "system", content = "You are mimicking a Discord user." },
+                        new { role = "user", content = prompt }
+                    },
+                    temperature = 0.7,
+                    max_tokens = 512
+                };
 
-            StringContent? content = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json");
-            HttpResponseMessage? response = await _httpClient.PostAsync("chat/completions", content);
-            string? result = await response.Content.ReadAsStringAsync();
-            JsonDocument? json;
-            if (!string.IsNullOrEmpty(result))
-            {
-                json = JsonDocument.Parse(result);
-            }
-            else
-            {
+                StringContent? content =
+                    new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json");
+                HttpResponseMessage? response = await _httpClient.PostAsync("chat/completions", content);
+                string? result = await response.Content.ReadAsStringAsync();
+                JsonDocument? json;
+                if (!string.IsNullOrEmpty(result))
+                {
+                    json = JsonDocument.Parse(result);
+                    return json.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content")
+                        .GetString()!;
+                }
+
                 Log.Error("Result string from OpenAI API response was null");
                 return string.Empty;
             }
-
-            return json.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString()!;
+            catch (Exception ex)
+            {
+                Log.Error(ex, "An exception was thrown while trying to generate an AI response message.");
+                return string.Empty;
+            }
         }
-    
     }
 }
