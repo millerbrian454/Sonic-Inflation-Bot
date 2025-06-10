@@ -2,6 +2,7 @@
 using SonicInflatorService.Core;
 using Discord;
 using Discord.WebSocket;
+using SonicInflatorService.Handlers.EventHandlers;
 
 namespace SonicInflatorService.Handlers
 {
