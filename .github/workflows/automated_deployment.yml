@@ -8,7 +8,7 @@ on:
 jobs:
   build-deploy:
     if: github.actor != 'web-flow'
-    runs-on: self-hosted 
+    runs-on: self-hosted
 
     steps:
     - name: Checkout code
@@ -23,7 +23,7 @@ jobs:
       run: dotnet restore
 
     - name: Build and publish bot
-      run: dotnet publish SonicInflatorService/SonicInflatorService.csproj -c Release -r win-x64 --self-contained -o publish
+      run: dotnet publish SonicInflatorService/SonicInflatorService.csproj -c Release -r linux-x64 --self-contained -o publish
 
     - name: Inject secrets into appsettings.json
       shell: bash
@@ -34,5 +34,5 @@ jobs:
         OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
 
     - name: Run deploy script
-      shell: powershell
-      run: ./deployment.ps1
+      shell: bash
+      run: ./deployment.sh
