@@ -8,7 +8,7 @@ on:
 jobs:
   build-deploy:
     if: github.actor != 'web-flow'
-    runs-on: self-hosted  # This runs on your Windows Server with GitHub runner installed
+    runs-on: self-hosted 
 
     steps:
     - name: Checkout code
@@ -25,30 +25,10 @@ jobs:
     - name: Build and publish bot
       run: dotnet publish SonicInflatorService/SonicInflatorService.csproj -c Release -r win-x64 --self-contained -o publish
 
-    - name: Substitute env vars in appsettings.template.json using PowerShell
-      shell: powershell
+    - name: Inject secrets into appsettings.json
+      shell: bash
       run: |
-        $templatePath = "appsettings.template.json"
-        $outputPath = "publish/appsettings.json"
-
-        $content = Get-Content $templatePath -Raw
-        $pattern = '\$\{(\w+)\}'
-
-        $evaluator = {
-            param($match)
-            $envVar = $match.Groups[1].Value
-            $value = [Environment]::GetEnvironmentVariable($envVar)
-            if ([string]::IsNullOrEmpty($value)) {
-                Write-Host "Warning: Environment variable '$envVar' is not set."
-                return $match.Value
-            }
-            return $value
-        }
-    
-        $result = [regex]::Replace($content, $pattern, $evaluator)
-        $result | Out-File -FilePath $outputPath -Encoding utf8
-
-        Write-Host "Substitution completed. Output saved to $outputPath"
+        envsubst < appsettings.template.json > publish/appsettings.json
       env:
         DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
         OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
