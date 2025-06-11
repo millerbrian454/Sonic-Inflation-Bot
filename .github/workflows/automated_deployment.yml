@@ -28,13 +28,31 @@ jobs:
     - name: Substitute env vars in appsettings.template.json using PowerShell
       shell: powershell
       run: |
-        $content = Get-Content appsettings.template.json -Raw
-        $content = $content -replace '\$\{(\w+)\}', { param($m) $env:$($m.Groups[1].Value) }
-        $content | Set-Content publish/appsettings.json
+        $templatePath = "appsettings.template.json"
+        $outputPath = "publish/appsettings.json"
+
+        $content = Get-Content $templatePath -Raw
+        $pattern = '\$\{(\w+)\}'
+
+        $evaluator = {
+            param($match)
+            $envVar = $match.Groups[1].Value
+            $value = [Environment]::GetEnvironmentVariable($envVar)
+            if ([string]::IsNullOrEmpty($value)) {
+                Write-Host "Warning: Environment variable '$envVar' is not set."
+                return $match.Value
+            }
+            return $value
+        }
+    
+        $result = [regex]::Replace($content, $pattern, $evaluator)
+        $result | Out-File -FilePath $outputPath -Encoding utf8
+
+        Write-Host "Substitution completed. Output saved to $outputPath"
       env:
         DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
         OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
 
     - name: Run deploy script
-      shell: pwsh
+      shell: powershell
       run: ./deployment.ps1
