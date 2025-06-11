@@ -13,18 +13,21 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
-      
-    - name: Install .NET SDK
+
+    - name: Install .NET SDK (local)
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 8.0.x
         install-dir: ~/.dotnet
 
-    - name: Add dotnet to PATH
+    - name: Add .NET to PATH
       run: |
         echo "$HOME/.dotnet" >> $GITHUB_PATH
         echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
-        
+
+    - name: Check dotnet version
+      run: dotnet --info
+
     - name: Restore dependencies
       run: dotnet restore
 
