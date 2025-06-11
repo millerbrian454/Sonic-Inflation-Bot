@@ -42,7 +42,7 @@ namespace SonicInflatorService.Handlers.MessageProcessors
             if (message.Channel is not SocketTextChannel textChannel)
                 return false;
 
-            if (message.MentionedUsers.Any(u => u.Id != _context.Client.CurrentUser.Id))
+            if (!message.MentionedUsers.Any(u => u.Id == _context.Client.CurrentUser.Id))
                 return false;
 
 
