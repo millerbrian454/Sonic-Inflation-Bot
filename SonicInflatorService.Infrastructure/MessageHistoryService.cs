@@ -14,22 +14,21 @@ namespace SonicInflatorService.Infrastructure
             _context = context;
         }
 
-        public async Task<IEnumerable<string>> GetRecentMessagesAsync(ITextChannel channel, int limit = 50)
+        public async Task<IEnumerable<string>> GetRecentMessagesAsync(ITextChannel channel, int limit = 100)
         {
             try
             {
-                List<string> result = new List<string>();
 
                 IEnumerable<IMessage> messages = await channel.GetMessagesAsync(limit: limit).FlattenAsync();
 
-                result.AddRange(messages
+                return messages
                     .Where(m => !string.IsNullOrWhiteSpace(m.Content))
+                    .Distinct()
                     .OrderBy(m => m.Timestamp)
                     .Take(limit)
-                    .Select(m =>
-                        $"{(m.Author as SocketGuildUser).DisplayName}: {m.Content.Replace($"{_context.Client.CurrentUser.Id}", "HIM").Replace("SONIC-INFLATOR", "HIM")}"));
+                    .Select(m =>$"{(m.Author as SocketGuildUser).DisplayName}: {m.CleanContent}")
+                    .ToList();
 
-                return result;
             }
             catch (Exception ex)
             {
@@ -38,13 +37,16 @@ namespace SonicInflatorService.Infrastructure
             }
 
         }
-        public async Task<IEnumerable<string>> GetRecentMessagesAsync(IGuild guild, IUser user, int limit = 50)
+        public async Task<IEnumerable<string>> GetRecentMessagesAsync(IGuild guild, IUser user, int limit = 100)
         {
-            List<string> result = new List<string>();
-            IReadOnlyCollection<ITextChannel> textChannels = await guild.GetTextChannelsAsync();
+            HashSet<string> result = new HashSet<string>();
 
-            foreach (ITextChannel channel in textChannels)
+            foreach(ulong channelId in _context.Settings.ContextChannelIds)
             {
+                ITextChannel channel = (await guild.GetChannelAsync(channelId)) as ITextChannel;
+
+                if (channel == null) continue;
+
                 try
                 {
                     IEnumerable<IMessage> messages = await channel.GetMessagesAsync(limit: 100).FlattenAsync();
@@ -52,7 +54,7 @@ namespace SonicInflatorService.Infrastructure
                     IEnumerable<string> userMessages = messages
                         .Where(m => m.Author.Id == user.Id && !string.IsNullOrWhiteSpace(m.Content))
                         .OrderByDescending(m => m.Timestamp)
-                        .Select(m => m.Content);
+                        .Select(m => m.CleanContent);
 
                     foreach (string msg in userMessages)
                     {
@@ -68,7 +70,7 @@ namespace SonicInflatorService.Infrastructure
                 }
             }
 
-            return result;
+            return result.ToList();
         }
     }
 }

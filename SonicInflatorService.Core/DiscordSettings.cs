@@ -10,6 +10,7 @@
 
         public string SirenEmojiName { get; set; }
         public required List<ulong> ChannelIds { get; set; }
+        public required List<ulong> ContextChannelIds { get; set; }
         public string? InflatedImagePath { get; set; }
         public string? DeflatedImagePath { get; set; }
         public string? SonichuImagePath { get; set; }

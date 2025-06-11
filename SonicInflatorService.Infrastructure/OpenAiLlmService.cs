@@ -14,6 +14,8 @@ namespace SonicInflatorService.Infrastructure
         private readonly string _baseUri;
         private readonly List<string> _models;
         private List<string>.Enumerator _model;
+        private string _summary = "There is no previous summary yet since this is the start of the conversation.";
+        private string _lastAssistantResponse = string.Empty;
 
         public OpenAiLlmService(IConfiguration config)
         {
@@ -28,10 +30,59 @@ namespace SonicInflatorService.Infrastructure
                 BaseAddress = new Uri(_baseUri)
             };
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
+        }        
+
+        public async Task<string> GenerateResponseAsync(string systemPrompt, string userPrompt)
+        {
+            var messages = new List<object>();
+
+            systemPrompt = $"""
+                            A summary of the conversation you have been having so far is: {_summary}
+
+                            ___
+
+                            {systemPrompt}
+                            """;
+
+            messages.Add(new { role = "system", content = systemPrompt  });
+
+            if (!string.IsNullOrWhiteSpace(_lastAssistantResponse))
+            {
+                messages.Add(new { role = "assistant", content = _lastAssistantResponse });
+            }
+
+            messages.Add(new { role = "user", content = userPrompt });
+
+            string assistantResponse = await GetAssistantResponseAsync(messages);
+
+
+            if (!string.IsNullOrWhiteSpace(assistantResponse))
+            {
+                _lastAssistantResponse = assistantResponse;
+
+                _summary = await SummarizeConversationAsync(_summary, userPrompt, assistantResponse);
+            }
+
+            return assistantResponse;
         }
 
+        private Task<string> SummarizeConversationAsync(string previousSummary, string userPrompt, string assistantReply)
+        {
+            string summarizationPrompt = $"Summarize the conversation so far in 1–7 sentences as needed. Capture the main points and tone.";
 
-        public async Task<string> GenerateResponseAsync(string prompt)
+            List<object> messages = new List<object>
+            {
+                new { role = "system", content = "You are a summarizer that condenses conversations into concise summaries." },
+                new { role = "assistant", content = $"Previous summary:\n{previousSummary}" },
+                new { role = "user", content = $"User: {userPrompt}" },
+                new { role = "assistant", content = $"Assistant: {assistantReply}" },
+                new { role = "user", content = summarizationPrompt }
+            };
+
+            return GetAssistantResponseAsync(messages);            
+        }
+
+        private async Task<string> GetAssistantResponseAsync(List<object> messages)
         {
             int retryCount = _models.Count;
 
@@ -42,17 +93,13 @@ namespace SonicInflatorService.Infrastructure
                     var request = new
                     {
                         model = _model.Current,
-                        messages = new[]
-                        {
-                            new { role = "system", content = "You are mimicking a Discord user." },
-                            new { role = "user", content = prompt }
-                        },
+                        messages = messages,
                         temperature = 0.7,
                         max_tokens = 512
                     };
 
-                    StringContent content = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json");
-                    HttpResponseMessage response = await _httpClient.PostAsync("chat/completions", content);
+                    StringContent contentPayload = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json");
+                    HttpResponseMessage response = await _httpClient.PostAsync("chat/completions", contentPayload);
                     string result = await response.Content.ReadAsStringAsync();
 
                     if (!string.IsNullOrEmpty(result))
@@ -73,12 +120,13 @@ namespace SonicInflatorService.Infrastructure
                             return string.Empty;
                         }
 
-                        // Parse and return normal response
-                        return json.RootElement
+                        string assistantResponse = json.RootElement
                             .GetProperty("choices")[0]
                             .GetProperty("message")
                             .GetProperty("content")
                             .GetString()!;
+
+                        return assistantResponse;
                     }
 
                     Log.Error("Result string from OpenAI API response was null");
