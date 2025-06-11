@@ -23,7 +23,7 @@ jobs:
       run: dotnet restore
 
     - name: Build and publish bot
-      run: dotnet publish DiscordImageBot.csproj -c Release -r win-x64 --self-contained -o publish
+      run: dotnet publish SonicInflatorService.csproj -c Release -r win-x64 --self-contained -o publish
 
     - name: Inject secrets into appsettings.json
       shell: bash
