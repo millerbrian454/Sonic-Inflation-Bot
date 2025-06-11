@@ -25,10 +25,12 @@ jobs:
     - name: Build and publish bot
       run: dotnet publish SonicInflatorService/SonicInflatorService.csproj -c Release -r win-x64 --self-contained -o publish
 
-    - name: Inject secrets into appsettings.json
-      shell: bash
+    - name: Substitute env vars in appsettings.template.json using PowerShell
+      shell: pwsh
       run: |
-        envsubst < appsettings.template.json > publish/appsettings.json
+        $content = Get-Content appsettings.template.json -Raw
+        $content = $content -replace '\$\{(\w+)\}', { param($m) $env:$($m.Groups[1].Value) }
+        $content | Set-Content publish/appsettings.json
       env:
         DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
         OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
