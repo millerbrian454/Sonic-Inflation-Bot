@@ -14,17 +14,17 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Setup .NET SDK cleanly
+    - name: Setup .NET SDK
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 8.0.x
-    
+
     - name: Override DOTNET_ROOT and fix PATH
       run: |
         echo "DOTNET_ROOT=$HOME/.dotnet" >> $GITHUB_ENV
         echo "$HOME/.dotnet" >> $GITHUB_PATH
         echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
-        
+
     - name: Confirm .NET install
       run: dotnet --info
 
@@ -41,6 +41,9 @@ jobs:
       env:
         DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
         OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
+
+    - name: Ensure deploy script is executable
+      run: chmod +x ./deployment.sh
 
     - name: Run deploy script
       shell: bash
