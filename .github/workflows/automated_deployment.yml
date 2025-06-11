@@ -25,7 +25,7 @@ jobs:
         echo "$HOME/.dotnet" >> $GITHUB_PATH
         echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
 
-    - name: Check dotnet version
+    - name: Confirm .NET install
       run: dotnet --info
 
     - name: Restore dependencies
