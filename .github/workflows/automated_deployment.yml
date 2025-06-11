@@ -14,6 +14,17 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
+    - name: Install .NET SDK (local)
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 8.0.x
+        install-dir: ${{ runner.temp }}/.dotnet
+    
+    - name: Add .NET to PATH
+      run: |
+        echo "${{ runner.temp }}/.dotnet" >> $GITHUB_PATH
+        echo "${{ runner.temp }}/.dotnet/tools" >> $GITHUB_PATH
+
     - name: Confirm .NET install
       run: dotnet --info
 
