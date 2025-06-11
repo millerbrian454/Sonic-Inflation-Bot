@@ -14,18 +14,17 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Setup .NET SDK (user-space)
+    - name: Setup .NET SDK cleanly
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 8.0.x
     
-    - name: Export DOTNET_ROOT and update PATH
+    - name: Override DOTNET_ROOT and fix PATH
       run: |
         echo "DOTNET_ROOT=$HOME/.dotnet" >> $GITHUB_ENV
         echo "$HOME/.dotnet" >> $GITHUB_PATH
         echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
-
-
+        
     - name: Confirm .NET install
       run: dotnet --info
 
