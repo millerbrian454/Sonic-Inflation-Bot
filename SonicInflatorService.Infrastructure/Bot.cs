@@ -1,7 +1,7 @@
 ﻿using Discord;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using SonicInflatorService.Core;
+using SonicInflatorService.Core.Interfaces;
 
 namespace SonicInflatorService.Infrastructure
 {

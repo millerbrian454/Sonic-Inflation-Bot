@@ -1,6 +1,6 @@
 ﻿using Discord;
 using Microsoft.Extensions.Logging;
-using SonicInflatorService.Core;
+using SonicInflatorService.Core.Interfaces;
 using SonicInflatorService.Handlers.EventHandlers;
 
 public class ReadyHandler : EventHandlerBase<ReadyEventArgs>, IClientWatcher

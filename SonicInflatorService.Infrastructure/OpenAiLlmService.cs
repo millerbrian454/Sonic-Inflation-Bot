@@ -4,36 +4,61 @@ using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Serilog;
 using SonicInflatorService.Core;
+using SonicInflatorService.Core.Entities;
+using SonicInflatorService.Core.Interfaces;
 
 namespace SonicInflatorService.Infrastructure
 {
     public class OpenAiLlmService : ILlmService
     {
         private readonly HttpClient _httpClient;
-        private readonly string _apiKey;
-        private readonly string _baseUri;
-        private readonly List<string> _models;
+        private readonly IConfigurationService _configService;
+        private string _apiKey = string.Empty;
+        private string _baseUri = string.Empty;
+        private List<string> _models = new();
         private List<string>.Enumerator _model;
         private string _summary = "There is no previous summary yet since this is the start of the conversation.";
         private string _lastAssistantResponse = string.Empty;
+        private bool _initialized = false;
 
-        public OpenAiLlmService(IConfiguration config)
+        public OpenAiLlmService(IConfigurationService configService)
         {
-            
-            _apiKey = config["OpenAI:ApiKey"]!;
-            _baseUri = config["OpenAI:BaseUri"]!;
-            _models = config.GetSection("OpenAI:Models").Get<List<string>>();
+            _configService = configService;
+            _httpClient = new HttpClient();
+        }
+
+        private async Task InitializeAsync()
+        {
+            if (_initialized) return;
+
+            var config = await _configService.GetOpenAIConfigurationAsync();
+            if (config == null)
+            {
+                throw new InvalidOperationException("OpenAI configuration not found in database");
+            }
+
+            _apiKey = config.ApiKey;
+            _baseUri = config.BaseUri;
+            _models = config.Models.Select(m => m.ModelName).ToList();
+
+            if (_models.Count == 0)
+            {
+                throw new InvalidOperationException("No OpenAI models configured");
+            }
+
             _model = _models.GetEnumerator();
             _model.MoveNext();
-            _httpClient = new HttpClient
-            {
-                BaseAddress = new Uri(_baseUri)
-            };
+
+            _httpClient.BaseAddress = new Uri(_baseUri);
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
-        }        
+
+            _initialized = true;
+        }
 
         public async Task<string> GenerateResponseAsync(string systemPrompt, string userPrompt)
         {
+            await InitializeAsync();
+
             var messages = new List<object>();
 
             systemPrompt = $"""
@@ -44,7 +69,7 @@ namespace SonicInflatorService.Infrastructure
                             {systemPrompt}
                             """;
 
-            messages.Add(new { role = "system", content = systemPrompt  });
+            messages.Add(new { role = "system", content = systemPrompt });
 
             if (!string.IsNullOrWhiteSpace(_lastAssistantResponse))
             {
@@ -55,11 +80,9 @@ namespace SonicInflatorService.Infrastructure
 
             string assistantResponse = await GetAssistantResponseAsync(messages);
 
-
             if (!string.IsNullOrWhiteSpace(assistantResponse))
             {
                 _lastAssistantResponse = assistantResponse;
-
                 _summary = await SummarizeConversationAsync(_summary, userPrompt, assistantResponse);
             }
 
@@ -79,7 +102,7 @@ namespace SonicInflatorService.Infrastructure
                 new { role = "user", content = summarizationPrompt }
             };
 
-            return GetAssistantResponseAsync(messages);            
+            return GetAssistantResponseAsync(messages);
         }
 
         private async Task<string> GetAssistantResponseAsync(List<object> messages)
@@ -142,6 +165,7 @@ namespace SonicInflatorService.Infrastructure
             Log.Error("All models exhausted or failed due to rate limits.");
             return string.Empty;
         }
+
         private void MoveToNextModel()
         {
             if (!_model.MoveNext())

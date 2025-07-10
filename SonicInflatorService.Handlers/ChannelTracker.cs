@@ -1,5 +1,5 @@
 ﻿using System.Collections.Concurrent;
-using SonicInflatorService.Core;
+using SonicInflatorService.Core.Interfaces;
 
 namespace SonicInflatorService.Handlers
 {

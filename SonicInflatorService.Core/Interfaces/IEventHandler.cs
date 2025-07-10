@@ -1,4 +1,4 @@
-﻿namespace SonicInflatorService.Core
+﻿namespace SonicInflatorService.Core.Interfaces
 {
     public interface IEventHandler<T>
     {

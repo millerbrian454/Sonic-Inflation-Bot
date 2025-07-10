@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Module = Autofac.Module;
 using Microsoft.Extensions.Hosting;
 using SonicInflatorService.Infrastructure;
+using SonicInflatorService.Core.Interfaces;
 
 namespace SonicInflatorService.DependencyInjection
 {

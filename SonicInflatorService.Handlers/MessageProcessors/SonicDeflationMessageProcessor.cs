@@ -1,6 +1,6 @@
 using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
-using SonicInflatorService.Core;
+using SonicInflatorService.Core.Interfaces;
 
 namespace SonicInflatorService.Handlers.MessageProcessors
 {
