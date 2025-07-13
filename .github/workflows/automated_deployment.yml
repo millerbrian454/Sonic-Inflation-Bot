@@ -100,9 +100,10 @@ jobs:
         script_stop: true
         script: |
           powershell -Command "Get-Service '${{ env.SERVICE_NAME }}' -EA SilentlyContinue | Where-Object {$_.Status -eq 'Running'} | Stop-Service -Force"
-          powershell -Command "if (!(Test-Path 'C:\Services\${{ env.SERVICE_NAME }}')) { New-Item -ItemType Directory -Path 'C:\Services\${{ env.SERVICE_NAME }}' -Force }"
-          powershell -Command "if (!(Test-Path 'C:\Services\Backups')) { New-Item -ItemType Directory -Path 'C:\Services\Backups' -Force }"
-          powershell -Command "if (Test-Path 'C:\Services\${{ env.SERVICE_NAME }}\*') { $backup = 'C:\Services\Backups\${{ env.SERVICE_NAME }}_' + (Get-Date -Format 'yyyyMMdd_HHmmss'); New-Item -ItemType Directory -Path $backup -Force; Copy-Item 'C:\Services\${{ env.SERVICE_NAME }}\*' $backup -Recurse -Force }"
+          powershell -Command "New-Item -ItemType Directory -Path 'C:\Services\${{ env.SERVICE_NAME }}' -Force -EA SilentlyContinue"
+          powershell -Command "New-Item -ItemType Directory -Path 'C:\Services\Backups' -Force -EA SilentlyContinue"
+          powershell -Command "$timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'; Write-Host $timestamp"
+          powershell -Command "$backup = 'C:\Services\Backups\${{ env.SERVICE_NAME }}_' + (Get-Date -Format 'yyyyMMdd_HHmmss'); if (Test-Path 'C:\Services\${{ env.SERVICE_NAME }}\*') { New-Item -ItemType Directory -Path $backup -Force; Copy-Item 'C:\Services\${{ env.SERVICE_NAME }}\*' $backup -Recurse -Force }"
           powershell -Command "Remove-Item 'C:\Services\${{ env.SERVICE_NAME }}\*' -Recurse -Force -EA SilentlyContinue"
 
     - name: Copy files to Windows Server
@@ -127,9 +128,12 @@ jobs:
         script: |
           powershell -Command "[Environment]::SetEnvironmentVariable('ASPNETCORE_ENVIRONMENT', 'Production', 'Machine')"
           powershell -Command "if (!(Test-Path 'C:\Services\${{ env.SERVICE_NAME }}\${{ env.SERVICE_NAME }}.exe')) { Write-Host 'Executable not found'; Get-ChildItem 'C:\Services\${{ env.SERVICE_NAME }}'; exit 1 }"
-          powershell -Command "if (Get-Service '${{ env.SERVICE_NAME }}' -EA SilentlyContinue) { sc.exe config '${{ env.SERVICE_NAME }}' binpath= 'C:\Services\${{ env.SERVICE_NAME }}\${{ env.SERVICE_NAME }}.exe' } else { sc.exe create '${{ env.SERVICE_NAME }}' binpath= 'C:\Services\${{ env.SERVICE_NAME }}\${{ env.SERVICE_NAME }}.exe' start= auto; sc.exe description '${{ env.SERVICE_NAME }}' 'Sonic Inflator Discord Bot Service' }"
+          powershell -Command "$exePath = 'C:\Services\${{ env.SERVICE_NAME }}\${{ env.SERVICE_NAME }}.exe'"
+          powershell -Command "if (Get-Service '${{ env.SERVICE_NAME }}' -EA SilentlyContinue) { Write-Host 'Updating service'; sc.exe config '${{ env.SERVICE_NAME }}' binpath= $exePath } else { Write-Host 'Creating service'; sc.exe create '${{ env.SERVICE_NAME }}' binpath= $exePath start= auto }"
+          powershell -Command "sc.exe description '${{ env.SERVICE_NAME }}' 'Sonic Inflator Discord Bot Service'"
           powershell -Command "Start-Service '${{ env.SERVICE_NAME }}'"
-          powershell -Command "Start-Sleep 5; $svc = Get-Service '${{ env.SERVICE_NAME }}'; if ($svc.Status -eq 'Running') { Write-Host 'Service started successfully' } else { Write-Host 'Service failed to start. Status:' $svc.Status; exit 1 }"
+          powershell -Command "Start-Sleep 5"
+          powershell -Command "$svc = Get-Service '${{ env.SERVICE_NAME }}'; if ($svc.Status -eq 'Running') { Write-Host 'Service started successfully' } else { Write-Host 'Service failed. Status:' $svc.Status; exit 1 }"
 
   notify:
     needs: [build, deploy]
