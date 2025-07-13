@@ -86,8 +86,8 @@ jobs:
         port: ${{ secrets.WINDOWS_SERVER_SSH_PORT }}
         timeout: 30s
         script: |
-          Write-Host "SSH connection successful"
-          Get-Date
+          echo "SSH connection successful"
+          echo %DATE% %TIME%
           whoami
 
     - name: Deploy to Windows Server
@@ -100,7 +100,7 @@ jobs:
         script: |
           # Stop the service if it's running
           if (Get-Service -Name "${{ env.SERVICE_NAME }}" -ErrorAction SilentlyContinue) {
-            Write-Host "Stopping ${{ env.SERVICE_NAME }} service..."
+            echo "Stopping ${{ env.SERVICE_NAME }} service..."
             Stop-Service -Name "${{ env.SERVICE_NAME }}" -Force
             Start-Sleep -Seconds 10
           }
@@ -116,7 +116,7 @@ jobs:
           if (Test-Path "$deployPath\*") {
             New-Item -ItemType Directory -Path $backupPath -Force
             Copy-Item -Path "$deployPath\*" -Destination $backupPath -Recurse -Force
-            Write-Host "Backup created at: $backupPath"
+            echo "Backup created at: $backupPath"
           }
           
           # Clear deployment directory
@@ -148,10 +148,10 @@ jobs:
           $deployPath = "C:\Services\${{ env.SERVICE_NAME }}"
           $servicePath = "$deployPath\${{ env.SERVICE_NAME }}.exe"
           if (Get-Service -Name "${{ env.SERVICE_NAME }}" -ErrorAction SilentlyContinue) {
-            Write-Host "Updating existing service..."
+            echo "Updating existing service..."
             sc.exe config "${{ env.SERVICE_NAME }}" binpath= $servicePath
           } else {
-            Write-Host "Installing new service..."
+            echo "Installing new service..."
             sc.exe create "${{ env.SERVICE_NAME }}" binpath= $servicePath start= auto
             sc.exe description "${{ env.SERVICE_NAME }}" "Sonic Inflator Discord Bot Service"
           }
@@ -163,9 +163,9 @@ jobs:
           Start-Sleep -Seconds 5
           $service = Get-Service -Name "${{ env.SERVICE_NAME }}"
           if ($service.Status -eq "Running") {
-            Write-Host "✅ Service ${{ env.SERVICE_NAME }} deployed and started successfully!"
+            echo "✅ Service ${{ env.SERVICE_NAME }} deployed and started successfully!"
           } else {
-            Write-Error "❌ Service failed to start. Status: $($service.Status)"
+            echo "❌ Service failed to start. Status: $($service.Status)"
             exit 1
           }
 
