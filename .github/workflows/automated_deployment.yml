@@ -90,7 +90,7 @@ jobs:
           echo %DATE% %TIME%
           whoami
 
-    - name: Deploy to Windows Server
+    - name: Stop Service and Prepare Deployment
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.WINDOWS_SERVER_HOST }}
@@ -100,29 +100,50 @@ jobs:
         script_stop: true
         script: |
           powershell -Command "
-          # Stop the service if it's running
-          if (Get-Service -Name '${{ env.SERVICE_NAME }}' -ErrorAction SilentlyContinue) {
-            Write-Host 'Stopping ${{ env.SERVICE_NAME }} service...'
-            Stop-Service -Name '${{ env.SERVICE_NAME }}' -Force
-            Start-Sleep -Seconds 10
+          # Check if service exists and stop it
+          $service = Get-Service -Name '${{ env.SERVICE_NAME }}' -ErrorAction SilentlyContinue
+          if ($service) {
+            Write-Host 'Service exists. Current status: ' + $service.Status
+            if ($service.Status -eq 'Running') {
+              Write-Host 'Stopping ${{ env.SERVICE_NAME }} service...'
+              Stop-Service -Name '${{ env.SERVICE_NAME }}' -Force
+              # Wait for service to fully stop
+              do {
+                Start-Sleep -Seconds 2
+                $service = Get-Service -Name '${{ env.SERVICE_NAME }}'
+                Write-Host 'Service status: ' + $service.Status
+              } while ($service.Status -ne 'Stopped')
+              Write-Host 'Service stopped successfully'
+            }
+          } else {
+            Write-Host 'Service does not exist - will create new service'
           }
           
           # Create deployment directory if it doesn't exist
           $deployPath = 'C:\Services\${{ env.SERVICE_NAME }}'
           if (!(Test-Path $deployPath)) {
             New-Item -ItemType Directory -Path $deployPath -Force
+            Write-Host 'Created deployment directory: ' + $deployPath
           }
           
-          # Backup current version
-          $backupPath = 'C:\Services\Backups\${{ env.SERVICE_NAME }}_' + (Get-Date -Format 'yyyyMMdd_HHmmss')
+          # Create backup directory if it doesn't exist
+          $backupDir = 'C:\Services\Backups'
+          if (!(Test-Path $backupDir)) {
+            New-Item -ItemType Directory -Path $backupDir -Force
+            Write-Host 'Created backup directory: ' + $backupDir
+          }
+          
+          # Backup current version if files exist
           if (Test-Path '$deployPath\*') {
+            $backupPath = 'C:\Services\Backups\${{ env.SERVICE_NAME }}_' + (Get-Date -Format 'yyyyMMdd_HHmmss')
             New-Item -ItemType Directory -Path $backupPath -Force
             Copy-Item -Path '$deployPath\*' -Destination $backupPath -Recurse -Force
-            Write-Host 'Backup created at: $backupPath'
+            Write-Host 'Backup created at: ' + $backupPath
           }
           
           # Clear deployment directory
           Remove-Item -Path '$deployPath\*' -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Host 'Deployment directory cleared'
           "
 
     - name: Copy files to Windows Server
@@ -136,7 +157,7 @@ jobs:
         target: "C:/Services/${{ env.SERVICE_NAME }}/"
         strip_components: 1
 
-    - name: Install and start Windows service
+    - name: Install/Update and Start Windows Service
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.WINDOWS_SERVER_HOST }}
@@ -149,30 +170,88 @@ jobs:
           # Set production environment
           [Environment]::SetEnvironmentVariable('ASPNETCORE_ENVIRONMENT', 'Production', 'Machine')
           
-          # Install/Update Windows Service
+          # Define paths
           $deployPath = 'C:\Services\${{ env.SERVICE_NAME }}'
           $servicePath = '$deployPath\${{ env.SERVICE_NAME }}.exe'
-          if (Get-Service -Name '${{ env.SERVICE_NAME }}' -ErrorAction SilentlyContinue) {
-            Write-Host 'Updating existing service...'
-            sc.exe config '${{ env.SERVICE_NAME }}' binpath= $servicePath
+          
+          # Verify the executable exists
+          if (!(Test-Path $servicePath)) {
+            Write-Host '❌ Executable not found at: ' + $servicePath
+            Get-ChildItem -Path $deployPath -Name
+            exit 1
+          }
+          
+          Write-Host 'Executable found at: ' + $servicePath
+          
+          # Check if service exists
+          $service = Get-Service -Name '${{ env.SERVICE_NAME }}' -ErrorAction SilentlyContinue
+          
+          if ($service) {
+            Write-Host 'Updating existing service configuration...'
+            # Update existing service binary path
+            $result = sc.exe config '${{ env.SERVICE_NAME }}' binpath= \"`\"$servicePath\"`\"
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host '❌ Failed to update service configuration'
+              Write-Host $result
+              exit 1
+            }
+            Write-Host '✅ Service configuration updated'
           } else {
             Write-Host 'Installing new service...'
-            sc.exe create '${{ env.SERVICE_NAME }}' binpath= $servicePath start= auto
+            # Create new service
+            $result = sc.exe create '${{ env.SERVICE_NAME }}' binpath= \"`\"$servicePath\"`\" start= auto
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host '❌ Failed to create service'
+              Write-Host $result
+              exit 1
+            }
+            
+            # Set service description
             sc.exe description '${{ env.SERVICE_NAME }}' 'Sonic Inflator Discord Bot Service'
+            Write-Host '✅ New service installed'
           }
           
           # Start the service
-          Start-Service -Name '${{ env.SERVICE_NAME }}'
-          
-          # Verify service is running
-          Start-Sleep -Seconds 5
-          $service = Get-Service -Name '${{ env.SERVICE_NAME }}'
-          if ($service.Status -eq 'Running') {
-            Write-Host '✅ Service ${{ env.SERVICE_NAME }} deployed and started successfully!'
-          } else {
-            Write-Host '❌ Service failed to start. Status: ' + $service.Status
+          Write-Host 'Starting service...'
+          try {
+            Start-Service -Name '${{ env.SERVICE_NAME }}' -ErrorAction Stop
+            Write-Host 'Service start command issued'
+          } catch {
+            Write-Host '❌ Failed to start service: ' + $_.Exception.Message
+            
+            # Check Windows Event Log for service errors
+            Write-Host 'Checking event logs for errors...'
+            $events = Get-WinEvent -FilterHashtable @{LogName='System'; ID=7000,7001,7009,7031,7032,7034} -MaxEvents 5 -ErrorAction SilentlyContinue | Where-Object {$_.Message -like '*${{ env.SERVICE_NAME }}*'}
+            if ($events) {
+              $events | ForEach-Object { Write-Host 'Event Log Error: ' + $_.Message }
+            }
             exit 1
           }
+          
+          # Wait and verify service is running
+          Write-Host 'Waiting for service to start...'
+          $timeout = 30
+          $elapsed = 0
+          do {
+            Start-Sleep -Seconds 2
+            $elapsed += 2
+            $service = Get-Service -Name '${{ env.SERVICE_NAME }}'
+            Write-Host 'Service status: ' + $service.Status + ' (elapsed: ' + $elapsed + 's)'
+            
+            if ($service.Status -eq 'Running') {
+              Write-Host '✅ Service ${{ env.SERVICE_NAME }} deployed and started successfully!'
+              exit 0
+            }
+            
+            if ($service.Status -eq 'Stopped') {
+              Write-Host '❌ Service failed to start - status is Stopped'
+              break
+            }
+          } while ($elapsed -lt $timeout)
+          
+          # If we get here, service didn't start properly
+          Write-Host '❌ Service failed to start within timeout period. Final status: ' + $service.Status
+          exit 1
           "
 
   notify:
