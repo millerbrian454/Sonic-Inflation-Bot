@@ -1,7 +1,7 @@
 ﻿using Discord;
 using Discord.WebSocket;
 using Serilog;
-using SonicInflatorService.Core;
+using SonicInflatorService.Core.Interfaces;
 
 namespace SonicInflatorService.Infrastructure
 {

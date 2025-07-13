@@ -1,7 +1,7 @@
 ﻿using Discord;
 using Discord.Commands;
 using Microsoft.Extensions.Logging;
-using SonicInflatorService.Core;
+using SonicInflatorService.Core.Interfaces;
 
 namespace SonicInflatorService.Handlers.EventHandlers
 {

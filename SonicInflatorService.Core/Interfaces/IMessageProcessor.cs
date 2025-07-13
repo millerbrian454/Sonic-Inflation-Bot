@@ -1,6 +1,6 @@
 ﻿using Discord.WebSocket;
 
-namespace SonicInflatorService.Core
+namespace SonicInflatorService.Core.Interfaces
 {
     public interface IMessageProcessor
     {
