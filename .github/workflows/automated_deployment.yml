@@ -97,30 +97,33 @@ jobs:
         username: ${{ secrets.WINDOWS_SERVER_USERNAME }}
         password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
         port: ${{ secrets.WINDOWS_SERVER_SSH_PORT }}
+        script_stop: true
         script: |
+          powershell -Command "
           # Stop the service if it's running
-          if (Get-Service -Name "${{ env.SERVICE_NAME }}" -ErrorAction SilentlyContinue) {
-            echo "Stopping ${{ env.SERVICE_NAME }} service..."
-            Stop-Service -Name "${{ env.SERVICE_NAME }}" -Force
+          if (Get-Service -Name '${{ env.SERVICE_NAME }}' -ErrorAction SilentlyContinue) {
+            Write-Host 'Stopping ${{ env.SERVICE_NAME }} service...'
+            Stop-Service -Name '${{ env.SERVICE_NAME }}' -Force
             Start-Sleep -Seconds 10
           }
           
           # Create deployment directory if it doesn't exist
-          $deployPath = "C:\Services\${{ env.SERVICE_NAME }}"
+          $deployPath = 'C:\Services\${{ env.SERVICE_NAME }}'
           if (!(Test-Path $deployPath)) {
             New-Item -ItemType Directory -Path $deployPath -Force
           }
           
           # Backup current version
-          $backupPath = "C:\Services\Backups\${{ env.SERVICE_NAME }}_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
-          if (Test-Path "$deployPath\*") {
+          $backupPath = 'C:\Services\Backups\${{ env.SERVICE_NAME }}_' + (Get-Date -Format 'yyyyMMdd_HHmmss')
+          if (Test-Path '$deployPath\*') {
             New-Item -ItemType Directory -Path $backupPath -Force
-            Copy-Item -Path "$deployPath\*" -Destination $backupPath -Recurse -Force
-            echo "Backup created at: $backupPath"
+            Copy-Item -Path '$deployPath\*' -Destination $backupPath -Recurse -Force
+            Write-Host 'Backup created at: $backupPath'
           }
           
           # Clear deployment directory
-          Remove-Item -Path "$deployPath\*" -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -Path '$deployPath\*' -Recurse -Force -ErrorAction SilentlyContinue
+          "
 
     - name: Copy files to Windows Server
       uses: appleboy/scp-action@v0.1.7
@@ -140,34 +143,37 @@ jobs:
         username: ${{ secrets.WINDOWS_SERVER_USERNAME }}
         password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
         port: ${{ secrets.WINDOWS_SERVER_SSH_PORT }}
+        script_stop: true
         script: |
+          powershell -Command "
           # Set production environment
-          [Environment]::SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Production", "Machine")
+          [Environment]::SetEnvironmentVariable('ASPNETCORE_ENVIRONMENT', 'Production', 'Machine')
           
           # Install/Update Windows Service
-          $deployPath = "C:\Services\${{ env.SERVICE_NAME }}"
-          $servicePath = "$deployPath\${{ env.SERVICE_NAME }}.exe"
-          if (Get-Service -Name "${{ env.SERVICE_NAME }}" -ErrorAction SilentlyContinue) {
-            echo "Updating existing service..."
-            sc.exe config "${{ env.SERVICE_NAME }}" binpath= $servicePath
+          $deployPath = 'C:\Services\${{ env.SERVICE_NAME }}'
+          $servicePath = '$deployPath\${{ env.SERVICE_NAME }}.exe'
+          if (Get-Service -Name '${{ env.SERVICE_NAME }}' -ErrorAction SilentlyContinue) {
+            Write-Host 'Updating existing service...'
+            sc.exe config '${{ env.SERVICE_NAME }}' binpath= $servicePath
           } else {
-            echo "Installing new service..."
-            sc.exe create "${{ env.SERVICE_NAME }}" binpath= $servicePath start= auto
-            sc.exe description "${{ env.SERVICE_NAME }}" "Sonic Inflator Discord Bot Service"
+            Write-Host 'Installing new service...'
+            sc.exe create '${{ env.SERVICE_NAME }}' binpath= $servicePath start= auto
+            sc.exe description '${{ env.SERVICE_NAME }}' 'Sonic Inflator Discord Bot Service'
           }
           
           # Start the service
-          Start-Service -Name "${{ env.SERVICE_NAME }}"
+          Start-Service -Name '${{ env.SERVICE_NAME }}'
           
           # Verify service is running
           Start-Sleep -Seconds 5
-          $service = Get-Service -Name "${{ env.SERVICE_NAME }}"
-          if ($service.Status -eq "Running") {
-            echo "✅ Service ${{ env.SERVICE_NAME }} deployed and started successfully!"
+          $service = Get-Service -Name '${{ env.SERVICE_NAME }}'
+          if ($service.Status -eq 'Running') {
+            Write-Host '✅ Service ${{ env.SERVICE_NAME }} deployed and started successfully!'
           } else {
-            echo "❌ Service failed to start. Status: $($service.Status)"
+            Write-Host '❌ Service failed to start. Status: ' + $service.Status
             exit 1
           }
+          "
 
   notify:
     needs: [build, deploy]
