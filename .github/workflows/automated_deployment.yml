@@ -89,8 +89,7 @@ jobs:
           echo "SSH connection successful"
           echo %DATE% %TIME%
           whoami
-
-    - name: Stop Service and Prepare Deployment
+    - name: Deploy to Windows Server
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.WINDOWS_SERVER_HOST }}
@@ -99,13 +98,23 @@ jobs:
         port: ${{ secrets.WINDOWS_SERVER_SSH_PORT }}
         script_stop: true
         script: |
-          powershell -Command "Get-Service '${{ env.SERVICE_NAME }}' -EA SilentlyContinue | Where-Object {$_.Status -eq 'Running'} | Stop-Service -Force"
-          powershell -Command "New-Item -ItemType Directory -Path 'C:\Services\${{ env.SERVICE_NAME }}' -Force -EA SilentlyContinue"
-          powershell -Command "New-Item -ItemType Directory -Path 'C:\Services\Backups' -Force -EA SilentlyContinue"
-          powershell -Command "$timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'; Write-Host $timestamp"
-          powershell -Command "$backup = 'C:\Services\Backups\${{ env.SERVICE_NAME }}_' + (Get-Date -Format 'yyyyMMdd_HHmmss'); if (Test-Path 'C:\Services\${{ env.SERVICE_NAME }}\*') { New-Item -ItemType Directory -Path $backup -Force; Copy-Item 'C:\Services\${{ env.SERVICE_NAME }}\*' $backup -Recurse -Force }"
-          powershell -Command "Remove-Item 'C:\Services\${{ env.SERVICE_NAME }}\*' -Recurse -Force -EA SilentlyContinue"
-
+          powershell -Command "
+          # Stop the service if it's running
+          if (Get-Service -Name '${{ env.SERVICE_NAME }}' -ErrorAction SilentlyContinue) {
+            Write-Host 'Stopping ${{ env.SERVICE_NAME }} service...'
+            Stop-Service -Name '${{ env.SERVICE_NAME }}' -Force
+            Start-Sleep -Seconds 10
+          }
+          
+          # Create deployment directory if it doesn't exist
+          $deployPath = 'C:\Services\${{ env.SERVICE_NAME }}'
+          if (!(Test-Path $deployPath)) {
+            New-Item -ItemType Directory -Path $deployPath -Force
+          }
+          
+          # Clear deployment directory
+          Remove-Item -Path '$deployPath\*' -Recurse -Force -ErrorAction SilentlyContinue
+          "
     - name: Copy files to Windows Server
       uses: appleboy/scp-action@v0.1.7
       with:
@@ -117,7 +126,7 @@ jobs:
         target: "C:/Services/${{ env.SERVICE_NAME }}/"
         strip_components: 1
 
-    - name: Install/Update and Start Windows Service
+    - name: Install and start Windows service
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.WINDOWS_SERVER_HOST }}
@@ -126,14 +135,35 @@ jobs:
         port: ${{ secrets.WINDOWS_SERVER_SSH_PORT }}
         script_stop: true
         script: |
-          powershell -Command "[Environment]::SetEnvironmentVariable('ASPNETCORE_ENVIRONMENT', 'Production', 'Machine')"
-          powershell -Command "if (!(Test-Path 'C:\Services\${{ env.SERVICE_NAME }}\${{ env.SERVICE_NAME }}.exe')) { Write-Host 'Executable not found'; Get-ChildItem 'C:\Services\${{ env.SERVICE_NAME }}'; exit 1 }"
-          powershell -Command "$exePath = 'C:\Services\${{ env.SERVICE_NAME }}\${{ env.SERVICE_NAME }}.exe'"
-          powershell -Command "if (Get-Service '${{ env.SERVICE_NAME }}' -EA SilentlyContinue) { Write-Host 'Updating service'; sc.exe config '${{ env.SERVICE_NAME }}' binpath= $exePath } else { Write-Host 'Creating service'; sc.exe create '${{ env.SERVICE_NAME }}' binpath= $exePath start= auto }"
-          powershell -Command "sc.exe description '${{ env.SERVICE_NAME }}' 'Sonic Inflator Discord Bot Service'"
-          powershell -Command "Start-Service '${{ env.SERVICE_NAME }}'"
-          powershell -Command "Start-Sleep 5"
-          powershell -Command "$svc = Get-Service '${{ env.SERVICE_NAME }}'; if ($svc.Status -eq 'Running') { Write-Host 'Service started successfully' } else { Write-Host 'Service failed. Status:' $svc.Status; exit 1 }"
+          powershell -Command "
+          # Set production environment
+          [Environment]::SetEnvironmentVariable('ASPNETCORE_ENVIRONMENT', 'Production', 'Machine')
+          
+          # Install/Update Windows Service
+          $deployPath = 'C:\Services\${{ env.SERVICE_NAME }}'
+          $servicePath = '$deployPath\${{ env.SERVICE_NAME }}.exe'
+          if (Get-Service -Name '${{ env.SERVICE_NAME }}' -ErrorAction SilentlyContinue) {
+            Write-Host 'Updating existing service...'
+            sc.exe config '${{ env.SERVICE_NAME }}' binpath= $servicePath
+          } else {
+            Write-Host 'Installing new service...'
+            sc.exe create '${{ env.SERVICE_NAME }}' binpath= $servicePath start= auto
+            sc.exe description '${{ env.SERVICE_NAME }}' 'Sonic Inflator Discord Bot Service'
+          }
+          
+          # Start the service
+          Start-Service -Name '${{ env.SERVICE_NAME }}'
+          
+          # Verify service is running
+          Start-Sleep -Seconds 5
+          $service = Get-Service -Name '${{ env.SERVICE_NAME }}'
+          if ($service.Status -eq 'Running') {
+            Write-Host '✅ Service ${{ env.SERVICE_NAME }} deployed and started successfully!'
+          } else {
+            Write-Host '❌ Service failed to start. Status: ' + $service.Status
+            exit 1
+          }
+          "
 
   notify:
     needs: [build, deploy]
