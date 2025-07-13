@@ -2,9 +2,6 @@
 using Discord.WebSocket;
 using Discord;
 using SonicInflatorService.Core;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Options;
-using Microsoft.Extensions.DependencyInjection;
 using Module = Autofac.Module;
 using Microsoft.Extensions.Hosting;
 using SonicInflatorService.Infrastructure;
@@ -27,20 +24,42 @@ namespace SonicInflatorService.DependencyInjection
             })).AsSelf().SingleInstance();
 
             builder
-            .Register(ctx =>
-            {
-                var config = ctx.Resolve<IConfiguration>();
-                var services = new ServiceCollection();
-                services.AddOptions();
-                // Add options and config binding with reloadOnChange = true
-                services.Configure<DiscordSettings>(config.GetSection("Discord"));
+                         .Register(ctx =>
+                         {
+                             var configService = ctx.Resolve<IConfigurationService>();
 
-                // Build service provider to get IOptionsMonitor<T>
-                var sp = services.BuildServiceProvider();
-                return sp.GetRequiredService<IOptionsMonitor<DiscordSettings>>();
-            })
-            .As<IOptionsMonitor<DiscordSettings>>()
-            .SingleInstance();
+                             // Create a wrapper that loads settings synchronously when needed
+                             return new Func<DiscordSettings>(() =>
+                             {
+                                 var discordConfig = configService.GetDiscordConfigurationAsync().GetAwaiter().GetResult();
+
+                                 if (discordConfig == null)
+                                     throw new InvalidOperationException("Discord configuration not found in database");
+
+                                 return new DiscordSettings
+                                 {
+                                     Token = discordConfig.Token,
+                                     PrimaryChannelId = discordConfig.PrimaryChannelId,
+                                     GuildId = discordConfig.GuildId,
+                                     MimicUserId = discordConfig.MimicUserId,
+                                     SirenEmojiId = discordConfig.SirenEmojiId,
+                                     SirenEmojiName = discordConfig.SirenEmojiName,
+                                     ChannelIds = discordConfig.ChannelIds.Select(c => c.ChannelId).ToList(),
+                                     ContextChannelIds = discordConfig.ContextChannelIds.Select(c => c.ChannelId).ToList(),
+                                     InflatedImagePath = discordConfig.InflatedImagePath,
+                                     DeflatedImagePath = discordConfig.DeflatedImagePath,
+                                     SonichuImagePath = discordConfig.SonichuImagePath,
+                                     CurseYeHaMeHaImagePath = discordConfig.CurseYeHaMeHaImagePath,
+                                     RandomIntervalMinutesMaxValue = discordConfig.RandomIntervalMinutesMaxValue,
+                                     RandomIntervalMinutesMinValue = discordConfig.RandomIntervalMinutesMinValue,
+                                     ResponseCooldownIntervalSeconds = discordConfig.ResponseCooldownIntervalSeconds,
+                                     RandomChannelPercentageChance = discordConfig.RandomChannelPercentageChance,
+                                     ProfessionalSonicWranglerUserIds = discordConfig.ProfessionalSonicWranglerUserIds.Select(p => p.UserId).ToList()
+                                 };
+                             });
+                         })
+                         .As<Func<DiscordSettings>>()
+                         .SingleInstance();
 
             builder
             .RegisterType<BotContext>()

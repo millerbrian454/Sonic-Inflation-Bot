@@ -1,10 +1,7 @@
 ﻿using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using Microsoft.Extensions.Configuration;
 using Serilog;
-using SonicInflatorService.Core;
-using SonicInflatorService.Core.Entities;
 using SonicInflatorService.Core.Interfaces;
 
 namespace SonicInflatorService.Infrastructure

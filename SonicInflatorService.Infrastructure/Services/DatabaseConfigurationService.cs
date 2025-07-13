@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using SonicInflatorService.Core;
 using SonicInflatorService.Core.Entities;
 using SonicInflatorService.Core.Interfaces;
 using SonicInflatorService.Infrastructure.Data;

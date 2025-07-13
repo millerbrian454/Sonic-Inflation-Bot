@@ -1,5 +1,4 @@
 ﻿using Discord.WebSocket;
-using Microsoft.Extensions.Options;
 using SonicInflatorService.Core;
 using SonicInflatorService.Core.Interfaces;
 
@@ -10,10 +9,10 @@ namespace SonicInflatorService.Infrastructure
         public DiscordSocketClient Client { get; }
         public DiscordSettings Settings { get; }
 
-        public BotContext(DiscordSocketClient client, IOptionsMonitor<DiscordSettings> settings)
+        public BotContext(DiscordSocketClient client, Func<DiscordSettings> settingsFactory)
         {
             Client = client;
-            Settings = settings.CurrentValue;
+            Settings = settingsFactory();
         }
     }
 }

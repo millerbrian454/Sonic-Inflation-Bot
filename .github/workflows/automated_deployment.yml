@@ -1,50 +1,156 @@
-name: Build & Deploy Sonic Inflation Bot
+# .github/workflows/deploy.yml
+name: Deploy to Windows Server
 
 on:
   push:
-    branches:
-      - master
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+    types: [ closed ]
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  PROJECT_PATH: './SonicInflatorService/SonicInflatorService.csproj'
+  PUBLISH_PATH: './publish'
+  SERVICE_NAME: 'SonicInflatorService'
 
 jobs:
-  build-deploy:
-    if: github.actor != 'web-flow'
-    runs-on: self-hosted
+  build:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
-      
-    - name: Override DOTNET_ROOT and fix PATH
-      run: |
-        echo "DOTNET_ROOT=$HOME/.dotnet" >> $GITHUB_ENV
-        echo "$HOME/.dotnet" >> $GITHUB_PATH
-        echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
-        
-    - name: Setup .NET SDK
-      uses: actions/setup-dotnet@v3
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 8.0.x
-        
-    - name: Confirm .NET install
-      run: dotnet --info
+        dotnet-version: ${{ env.DOTNET_VERSION }}
 
     - name: Restore dependencies
       run: dotnet restore
 
-    - name: Build and publish bot
-      run: dotnet publish SonicInflatorService/SonicInflatorService.csproj -c Release -r linux-x64 --self-contained -o publish
+    - name: Build
+      run: dotnet build --no-restore --configuration Release
 
-    - name: Inject secrets into appsettings.json
-      shell: bash
+    - name: Test
+      run: dotnet test --no-build --verbosity normal --configuration Release
+
+    - name: Substitute Connection String in appsettings
       run: |
-        envsubst < appsettings.template.json > publish/appsettings.json
-      env:
-        DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
-        OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
+        # Replace placeholder with actual connection string
+        sed -i 's|{{DATABASE_CONNECTION_STRING}}|${{ secrets.DATABASE_CONNECTION_STRING }}|g' ./SonicInflatorService/appsettings.json
+        
+        # Verify substitution worked (without exposing the secret)
+        if grep -q "{{DATABASE_CONNECTION_STRING}}" ./SonicInflatorService/appsettings.json; then
+          echo "❌ Connection string substitution failed"
+          exit 1
+        else
+          echo "✅ Connection string substituted successfully"
+        fi
 
-    - name: Ensure deploy script is executable
-      run: chmod +x ./deployment.sh
+    - name: Publish
+      run: |
+        dotnet publish ${{ env.PROJECT_PATH }} \
+          --configuration Release \
+          --runtime win-x64 \
+          --self-contained true \
+          --output ${{ env.PUBLISH_PATH }} \
+          /p:PublishSingleFile=true \
+          /p:IncludeNativeLibrariesForSelfExtract=true
 
-    - name: Run deploy script
-      shell: bash
-      run: ./deployment.sh
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: published-app
+        path: ${{ env.PUBLISH_PATH }}
+        retention-days: 1
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: published-app
+        path: ${{ env.PUBLISH_PATH }}
+
+    - name: Deploy to Windows Server
+      uses: garygrossgarten/github-action-ssh-deploy@release
+      with:
+        command: |
+          # Stop the service if it's running
+          if (Get-Service -Name "${{ env.SERVICE_NAME }}" -ErrorAction SilentlyContinue) {
+            Write-Host "Stopping ${{ env.SERVICE_NAME }} service..."
+            Stop-Service -Name "${{ env.SERVICE_NAME }}" -Force
+            Start-Sleep -Seconds 10
+          }
+          
+          # Create deployment directory if it doesn't exist
+          $deployPath = "C:\Services\${{ env.SERVICE_NAME }}"
+          if (!(Test-Path $deployPath)) {
+            New-Item -ItemType Directory -Path $deployPath -Force
+          }
+          
+          # Backup current version
+          $backupPath = "C:\Services\Backups\${{ env.SERVICE_NAME }}_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
+          if (Test-Path "$deployPath\*") {
+            New-Item -ItemType Directory -Path $backupPath -Force
+            Copy-Item -Path "$deployPath\*" -Destination $backupPath -Recurse -Force
+            Write-Host "Backup created at: $backupPath"
+          }
+          
+          # Clear deployment directory
+          Remove-Item -Path "$deployPath\*" -Recurse -Force -ErrorAction SilentlyContinue
+          
+          # Copy new files
+          Copy-Item -Path "${{ env.PUBLISH_PATH }}\*" -Destination $deployPath -Recurse -Force
+          
+          # Set production environment
+          [Environment]::SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Production", "Machine")
+          
+          # Install/Update Windows Service
+          $servicePath = "$deployPath\${{ env.SERVICE_NAME }}.exe"
+          if (Get-Service -Name "${{ env.SERVICE_NAME }}" -ErrorAction SilentlyContinue) {
+            Write-Host "Updating existing service..."
+            sc.exe config "${{ env.SERVICE_NAME }}" binpath= $servicePath
+          } else {
+            Write-Host "Installing new service..."
+            sc.exe create "${{ env.SERVICE_NAME }}" binpath= $servicePath start= auto
+            sc.exe description "${{ env.SERVICE_NAME }}" "Sonic Inflator Discord Bot Service"
+          }
+          
+          # Start the service
+          Start-Service -Name "${{ env.SERVICE_NAME }}"
+          
+          # Verify service is running
+          Start-Sleep -Seconds 5
+          $service = Get-Service -Name "${{ env.SERVICE_NAME }}"
+          if ($service.Status -eq "Running") {
+            Write-Host "✅ Service ${{ env.SERVICE_NAME }} deployed and started successfully!"
+          } else {
+            Write-Error "❌ Service failed to start. Status: $($service.Status)"
+            exit 1
+          }
+        host: ${{ secrets.WINDOWS_SERVER_HOST }}
+        username: ${{ secrets.WINDOWS_SERVER_USERNAME }}
+        password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
+        port: ${{ secrets.WINDOWS_SERVER_SSH_PORT }}
+
+  notify:
+    needs: [build, deploy]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+    - name: Notify deployment status
+      run: |
+        if [ "${{ needs.deploy.result }}" == "success" ]; then
+          echo "✅ Deployment successful!"
+        else
+          echo "❌ Deployment failed!"
+        fi
