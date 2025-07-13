@@ -80,7 +80,7 @@ jobs:
         path: ${{ env.PUBLISH_PATH }}
 
     - name: Deploy to Windows Server
-      uses: garygrossgarten/github-action-ssh-deploy@release
+      uses: garygrossgarten/github-action-ssh-deploy@v1
       with:
         command: |
           # Stop the service if it's running
