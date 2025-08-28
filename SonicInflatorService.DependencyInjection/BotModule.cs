@@ -6,6 +6,7 @@ using Module = Autofac.Module;
 using Microsoft.Extensions.Hosting;
 using SonicInflatorService.Infrastructure;
 using SonicInflatorService.Core.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace SonicInflatorService.DependencyInjection
 {
@@ -27,35 +28,50 @@ namespace SonicInflatorService.DependencyInjection
                          .Register(ctx =>
                          {
                              var configService = ctx.Resolve<IConfigurationService>();
+                             var logger = ctx.Resolve<ILogger<BotModule>>();
 
                              // Create a wrapper that loads settings synchronously when needed
                              return new Func<DiscordSettings>(() =>
                              {
-                                 var discordConfig = configService.GetDiscordConfigurationAsync().GetAwaiter().GetResult();
-
-                                 if (discordConfig == null)
-                                     throw new InvalidOperationException("Discord configuration not found in database");
-
-                                 return new DiscordSettings
+                                 try
                                  {
-                                     Token = discordConfig.Token,
-                                     PrimaryChannelId = discordConfig.PrimaryChannelId,
-                                     GuildId = discordConfig.GuildId,
-                                     MimicUserId = discordConfig.MimicUserId,
-                                     SirenEmojiId = discordConfig.SirenEmojiId,
-                                     SirenEmojiName = discordConfig.SirenEmojiName,
-                                     ChannelIds = discordConfig.ChannelIds.Select(c => c.ChannelId).ToList(),
-                                     ContextChannelIds = discordConfig.ContextChannelIds.Select(c => c.ChannelId).ToList(),
-                                     InflatedImagePath = discordConfig.InflatedImagePath,
-                                     DeflatedImagePath = discordConfig.DeflatedImagePath,
-                                     SonichuImagePath = discordConfig.SonichuImagePath,
-                                     CurseYeHaMeHaImagePath = discordConfig.CurseYeHaMeHaImagePath,
-                                     RandomIntervalMinutesMaxValue = discordConfig.RandomIntervalMinutesMaxValue,
-                                     RandomIntervalMinutesMinValue = discordConfig.RandomIntervalMinutesMinValue,
-                                     ResponseCooldownIntervalSeconds = discordConfig.ResponseCooldownIntervalSeconds,
-                                     RandomChannelPercentageChance = discordConfig.RandomChannelPercentageChance,
-                                     ProfessionalSonicWranglerUserIds = discordConfig.ProfessionalSonicWranglerUserIds.Select(p => p.UserId).ToList()
-                                 };
+                                     var discordConfig = configService.GetDiscordConfigurationAsync().GetAwaiter().GetResult();
+
+                                     if (discordConfig == null)
+                                     {
+                                         logger.LogError("Discord configuration not found in database or appsettings.json");
+                                         throw new InvalidOperationException("Discord configuration not found in database or appsettings.json");
+                                     }
+
+                                     logger.LogInformation("Successfully loaded Discord configuration from {Source}",
+                                         discordConfig.Id == -1 ? "appsettings.json" : "database");
+
+                                     return new DiscordSettings
+                                     {
+                                         Token = discordConfig.Token,
+                                         PrimaryChannelId = discordConfig.PrimaryChannelId,
+                                         GuildId = discordConfig.GuildId,
+                                         MimicUserId = discordConfig.MimicUserId,
+                                         SirenEmojiId = discordConfig.SirenEmojiId,
+                                         SirenEmojiName = discordConfig.SirenEmojiName ?? "🚨",
+                                         ChannelIds = discordConfig.ChannelIds.Select(c => c.ChannelId).ToList(),
+                                         ContextChannelIds = discordConfig.ContextChannelIds.Select(c => c.ChannelId).ToList(),
+                                         InflatedImagePath = discordConfig.InflatedImagePath,
+                                         DeflatedImagePath = discordConfig.DeflatedImagePath,
+                                         SonichuImagePath = discordConfig.SonichuImagePath,
+                                         CurseYeHaMeHaImagePath = discordConfig.CurseYeHaMeHaImagePath,
+                                         RandomIntervalMinutesMaxValue = discordConfig.RandomIntervalMinutesMaxValue,
+                                         RandomIntervalMinutesMinValue = discordConfig.RandomIntervalMinutesMinValue,
+                                         ResponseCooldownIntervalSeconds = discordConfig.ResponseCooldownIntervalSeconds,
+                                         RandomChannelPercentageChance = discordConfig.RandomChannelPercentageChance,
+                                         ProfessionalSonicWranglerUserIds = discordConfig.ProfessionalSonicWranglerUserIds.Select(p => p.UserId).ToList()
+                                     };
+                                 }
+                                 catch (Exception ex)
+                                 {
+                                     logger.LogError(ex, "Failed to load Discord configuration from both database and appsettings.json");
+                                     throw;
+                                 }
                              });
                          })
                          .As<Func<DiscordSettings>>()
@@ -69,7 +85,7 @@ namespace SonicInflatorService.DependencyInjection
             builder
             .RegisterType<Bot>()
             .As<IHostedService>()
-            .SingleInstance();      
+            .SingleInstance();
         }
     }
 }

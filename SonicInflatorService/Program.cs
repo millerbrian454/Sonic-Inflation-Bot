@@ -30,7 +30,7 @@ try
         })
         .Build();
 
-    // Seed database with configuration data
+    // Attempt to seed database with configuration data
     using (var scope = host.Services.CreateScope())
     {
         try
@@ -38,16 +38,17 @@ try
             var context = scope.ServiceProvider.GetRequiredService<SonicInflatorDbContext>();
             var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
 
-            Log.Information("Seeding database with configuration data...");
+            Log.Information("Attempting to seed database with configuration data...");
             await ConfigurationSeeder.SeedFromAppSettingsAsync(context, configuration);
             Log.Information("Database seeding completed successfully");
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Error occurred during database seeding");
+            Log.Warning(ex, "Database seeding failed. The application will use appsettings.json as fallback configuration. Error: {ErrorMessage}", ex.Message);
         }
     }
 
+    Log.Information("Starting host services...");
     await host.RunAsync();
 }
 catch (Exception ex)
@@ -58,6 +59,3 @@ finally
 {
     Log.CloseAndFlush();
 }
-
-
-
