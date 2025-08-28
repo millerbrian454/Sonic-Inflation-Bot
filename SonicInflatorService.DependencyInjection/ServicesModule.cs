@@ -23,9 +23,15 @@ namespace SonicInflatorService.DependencyInjection
                 return new SonicInflatorDbContext(optionsBuilder.Options);
             }).InstancePerLifetimeScope();
 
-            // Register Configuration Service
+            // Register Database Configuration Service
             builder
                 .RegisterType<DatabaseConfigurationService>()
+                .AsSelf()
+                .InstancePerLifetimeScope();
+
+            // Register Fallback Configuration Service as the main IConfigurationService
+            builder
+                .RegisterType<FallbackConfigurationService>()
                 .As<IConfigurationService>()
                 .InstancePerLifetimeScope();
 
