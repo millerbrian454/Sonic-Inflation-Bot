@@ -1,5 +1,8 @@
-﻿using Discord.Commands;
+﻿using System.Text.RegularExpressions;
+using Azure;
+using Discord.Commands;
 using Discord.WebSocket;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Logging;
 using SonicInflatorService.Core.Interfaces;
 
@@ -10,6 +13,7 @@ namespace SonicInflatorService.Handlers.MessageProcessors
         private readonly IBotContext _context;
         private readonly IMessageHistoryService _historyService;
         private readonly ILlmService _llm;
+        private string _systemPrompt;
         private readonly ILogger<MentionMessageProcessor> _logger;
         private SocketGuild _guild;
         private SocketUser _userToMimic;
@@ -45,35 +49,68 @@ namespace SonicInflatorService.Handlers.MessageProcessors
             if (!message.MentionedUsers.Any(u => u.Id == _context.Client.CurrentUser.Id))
                 return false;
 
+            const string query = "persona: current";
+            const string reset = "persona: reset";
+            const string persona = "persona:";
 
-            SocketCommandContext context = new SocketCommandContext(_context.Client, userMessage);
-
-            IEnumerable<string> conversation = await _historyService.GetRecentMessagesAsync(textChannel);
-            IEnumerable<string> history = await _historyService.GetRecentMessagesAsync(_guild, _userToMimic);
-
-            string mimic = (_userToMimic as SocketGuildUser).DisplayName;
-            string author = (message.Author as SocketGuildUser)?.DisplayName;
-            string bot = _guild.CurrentUser.DisplayName;
-
-            string systemPrompt = BuildSystemPrompt(conversation, history, bot, mimic);
-            string userPrompt = BuildUserPrompt(message.Content, author);
-
-            try
+            if (message.Content.Contains(query, StringComparison.OrdinalIgnoreCase))
             {
-                string response = await _llm.GenerateResponseAsync(systemPrompt, userPrompt);
-
-                if (string.IsNullOrEmpty(response))
+                string response = "I am default.";
+                if (_systemPrompt != null)
                 {
-                    _logger.LogError("Failed to generate AI response");
-                    return false;
+                    response = _systemPrompt;
                 }
+
                 await message.Channel.SendMessageAsync(response);
                 return true;
             }
-            catch(Exception ex)
+            else if (message.Content.Contains(reset, StringComparison.OrdinalIgnoreCase))
             {
-                _logger.LogError(ex, "Unable to generate LLM response");
-                return false;
+                _systemPrompt = null;
+                await message.Channel.SendMessageAsync("Okay");
+                return true;
+            }
+            else if (message.Content.Contains(persona, StringComparison.OrdinalIgnoreCase))
+            {
+                int length = persona.Length;
+                int index = message.Content.IndexOf(persona, StringComparison.OrdinalIgnoreCase);
+
+                _systemPrompt = message.Content.Substring(index + length).Trim();
+                await message.Channel.SendMessageAsync("If you say so");
+                return true;
+            }
+            else
+            {
+
+                SocketCommandContext context = new SocketCommandContext(_context.Client, userMessage);
+
+                IEnumerable<string> conversation = await _historyService.GetRecentMessagesAsync(textChannel);
+                IEnumerable<string> history = await _historyService.GetRecentMessagesAsync(_guild, _userToMimic);
+
+                string mimic = (_userToMimic as SocketGuildUser).DisplayName;
+                string author = (message.Author as SocketGuildUser)?.DisplayName;
+                string bot = _guild.CurrentUser.DisplayName;
+
+                string systemPrompt = _systemPrompt ?? BuildSystemPrompt(conversation, history, bot, mimic);
+                string userPrompt = BuildUserPrompt(message.Content, author);
+
+                try
+                {
+                    string response = await _llm.GenerateResponseAsync(systemPrompt, userPrompt);
+
+                    if (string.IsNullOrEmpty(response))
+                    {
+                        _logger.LogError("Failed to generate AI response");
+                        return false;
+                    }
+                    await message.Channel.SendMessageAsync(response?.Trim('"'));
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Unable to generate LLM response");
+                    return false;
+                }
             }
         }
 
