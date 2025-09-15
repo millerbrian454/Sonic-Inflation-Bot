@@ -1,5 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 using Azure;
+using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
@@ -103,7 +104,8 @@ namespace SonicInflatorService.Handlers.MessageProcessors
                         _logger.LogError("Failed to generate AI response");
                         return false;
                     }
-                    await message.Channel.SendMessageAsync(response?.Trim('"'));
+                    MessageReference reference = new MessageReference(message.Id);
+                    await message.Channel.SendMessageAsync(text: response?.Trim('"'), messageReference: reference);
                     return true;
                 }
                 catch (Exception ex)
