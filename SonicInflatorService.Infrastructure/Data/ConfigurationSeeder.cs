@@ -40,6 +40,7 @@ namespace SonicInflatorService.Infrastructure.Data
                 .Include(c => c.ChannelIds)
                 .Include(c => c.ContextChannelIds)
                 .Include(c => c.ProfessionalSonicWranglerUserIds)
+                .Include(c => c.NaughtyWords)
                 .FirstOrDefaultAsync();
 
             if (discordConfig == null)
@@ -50,6 +51,7 @@ namespace SonicInflatorService.Infrastructure.Data
                     var channelIds = configuration.GetSection("Discord:ChannelIds").Get<List<ulong>>() ?? new List<ulong>();
                     var contextChannelIds = configuration.GetSection("Discord:ContextChannelIds").Get<List<ulong>>() ?? new List<ulong>();
                     var wranglerIds = configuration.GetSection("Discord:ProfessionalSonicWranglerUserIds").Get<List<ulong>>() ?? new List<ulong>();
+                    var naughtyWords = configuration.GetSection("Discord:NaughtyWords").Get<List<string>>() ?? new List<string>();
 
                     discordConfig = new DiscordConfigurationEntity
                     {
@@ -71,7 +73,9 @@ namespace SonicInflatorService.Infrastructure.Data
                         UpdatedAt = DateTime.UtcNow,
                         ChannelIds = channelIds.Select(id => new DiscordChannelEntity { ChannelId = id, CreatedAt = DateTime.UtcNow }).ToList(),
                         ContextChannelIds = contextChannelIds.Select(id => new DiscordContextChannelEntity { ChannelId = id, CreatedAt = DateTime.UtcNow }).ToList(),
-                        ProfessionalSonicWranglerUserIds = wranglerIds.Select(id => new DiscordProfessionalWranglerEntity { UserId = id, CreatedAt = DateTime.UtcNow }).ToList()
+                        ProfessionalSonicWranglerUserIds = wranglerIds.Select(id => new DiscordProfessionalWranglerEntity { UserId = id, CreatedAt = DateTime.UtcNow }).ToList(),
+                        NaughtyWords = naughtyWords.Select(id => new DiscordNaughtyWordEntity { NaughtyWord = id, CreatedAt = DateTime.UtcNow }).ToList()
+
                     };
 
                     context.DiscordConfigurations.Add(discordConfig);

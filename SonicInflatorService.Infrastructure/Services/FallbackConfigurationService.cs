@@ -187,6 +187,7 @@ namespace SonicInflatorService.Infrastructure.Services
             var channelIds = _configuration.GetSection("Discord:ChannelIds").Get<List<ulong>>() ?? new List<ulong>();
             var contextChannelIds = _configuration.GetSection("Discord:ContextChannelIds").Get<List<ulong>>() ?? new List<ulong>();
             var wranglerIds = _configuration.GetSection("Discord:ProfessionalSonicWranglerUserIds").Get<List<ulong>>() ?? new List<ulong>();
+            var naughtyWords = _configuration.GetSection("Discord:NaughtyWords").Get<List<string>>() ?? new List<string>();
 
             _logger.LogInformation("Using Discord configuration from appsettings.json");
 
@@ -227,6 +228,13 @@ namespace SonicInflatorService.Infrastructure.Services
                 {
                     Id = -1,
                     UserId = id,
+                    CreatedAt = DateTime.UtcNow,
+                    DiscordConfigurationId = -1
+                }).ToList(),
+                NaughtyWords = naughtyWords.Select(id => new DiscordNaughtyWordEntity
+                {
+                    Id = -1,
+                    NaughtyWord = id,
                     CreatedAt = DateTime.UtcNow,
                     DiscordConfigurationId = -1
                 }).ToList()

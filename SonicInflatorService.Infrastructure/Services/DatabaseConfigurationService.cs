@@ -27,6 +27,7 @@ namespace SonicInflatorService.Infrastructure.Services
                 .Include(c => c.ChannelIds)
                 .Include(c => c.ContextChannelIds)
                 .Include(c => c.ProfessionalSonicWranglerUserIds)
+                .Include(c => c.NaughtyWords)
                 .FirstOrDefaultAsync();
         }
 
@@ -111,10 +112,12 @@ namespace SonicInflatorService.Infrastructure.Services
                 _context.DiscordChannels.RemoveRange(existing.ChannelIds);
                 _context.DiscordContextChannels.RemoveRange(existing.ContextChannelIds);
                 _context.DiscordProfessionalWranglers.RemoveRange(existing.ProfessionalSonicWranglerUserIds);
+                _context.DiscordNaughtyWords.RemoveRange(existing.NaughtyWords);
 
                 existing.ChannelIds = configuration.ChannelIds;
                 existing.ContextChannelIds = configuration.ContextChannelIds;
                 existing.ProfessionalSonicWranglerUserIds = configuration.ProfessionalSonicWranglerUserIds;
+                existing.NaughtyWords = configuration.NaughtyWords;
             }
             else
             {

@@ -14,6 +14,7 @@ namespace SonicInflatorService.Infrastructure.Data
         public DbSet<DiscordChannelEntity> DiscordChannels { get; set; }
         public DbSet<DiscordContextChannelEntity> DiscordContextChannels { get; set; }
         public DbSet<DiscordProfessionalWranglerEntity> DiscordProfessionalWranglers { get; set; }
+        public DbSet<DiscordNaughtyWordEntity> DiscordNaughtyWords { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -95,6 +96,17 @@ namespace SonicInflatorService.Infrastructure.Data
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
                 entity.HasOne(e => e.DiscordConfiguration)
                       .WithMany(e => e.ProfessionalSonicWranglerUserIds)
+                      .HasForeignKey(e => e.DiscordConfigurationId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Discord Naughty Words
+            modelBuilder.Entity<DiscordNaughtyWordEntity>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.HasOne(e => e.DiscordConfiguration)
+                      .WithMany(e => e.NaughtyWords)
                       .HasForeignKey(e => e.DiscordConfigurationId)
                       .OnDelete(DeleteBehavior.Cascade);
             });

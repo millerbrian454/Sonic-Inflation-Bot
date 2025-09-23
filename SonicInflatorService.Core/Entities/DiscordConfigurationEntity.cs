@@ -23,6 +23,7 @@ namespace SonicInflatorService.Core.Entities
         // Navigation properties
         public ICollection<DiscordChannelEntity> ChannelIds { get; set; } = new List<DiscordChannelEntity>();
         public ICollection<DiscordContextChannelEntity> ContextChannelIds { get; set; } = new List<DiscordContextChannelEntity>();
+        public ICollection<DiscordNaughtyWordEntity> NaughtyWords { get; set; } = new List<DiscordNaughtyWordEntity>();
         public ICollection<DiscordProfessionalWranglerEntity> ProfessionalSonicWranglerUserIds { get; set; } = new List<DiscordProfessionalWranglerEntity>();
     }
 }

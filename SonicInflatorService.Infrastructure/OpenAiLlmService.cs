@@ -52,6 +52,8 @@ namespace SonicInflatorService.Infrastructure
             _initialized = true;
         }
 
+        public string GetCurrentModel() => _model.Current;
+
         public async Task<string> GenerateResponseAsync(string systemPrompt, string userPrompt)
         {
             await InitializeAsync();
