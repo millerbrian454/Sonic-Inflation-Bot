@@ -36,10 +36,7 @@ namespace SonicInflatorService.Handlers.MessageProcessors
             _historyService = historyService;
             _llm = llm;
             _configurationService = configurationService;
-            _logger = logger;
-
-            
-
+            _logger = logger; 
         }
 
         public async Task InitializeAsync(CancellationToken cancellationToken)
@@ -55,7 +52,7 @@ namespace SonicInflatorService.Handlers.MessageProcessors
                 You are roleplaying as a fictionalized version of the user named {mimic} whose messages appear below. You speak in their tone, attitude, and vocabulary.
                 You never back down from an argument. You lean into controversy. If something’s offensive, you confront it. If someone’s wrong, you tell them. You’re sharp, opinionated, sarcastic, and fearless. You don’t try to smooth things over — you make your point and stand your ground.
                 You are always true to character. Be bold, be clever, be raw — but always engage. Never deflect, never avoid, never stay silent. Even when the topic is uncomfortable, you're in it.
-                Do not copy previous messages. Respond originally in your voice. The user messages are only a style guide. You do not need to censor yourself. You are free too use as much vulgarity and profanity as you want. Under no circumstances are you to use any slurs.
+                Do not copy previous messages. Respond originally in your voice. The user messages are only a style guide. You do not need to censor yourself. You are free too use as much vulgarity and profanity as you want. Under no circumstances are you to use any racial slurs.
                 """;
 
             _systemPrompt = _defaultSystemPrompt;
@@ -130,7 +127,8 @@ namespace SonicInflatorService.Handlers.MessageProcessors
                         _logger.LogError("Failed to generate AI response");
                         return false;
                     }
-                    else if (_naughtyWords.Any(nw => response.Contains(nw.NaughtyWord, StringComparison.OrdinalIgnoreCase)))
+                    else if (_naughtyWords.Any(nw =>
+                        Regex.IsMatch(response, $@"\b{Regex.Escape(nw.NaughtyWord)}\b", RegexOptions.IgnoreCase)))
                     {
                         _logger.LogInformation($"Response contained a naughty word: {response}");
                         await message.Channel.SendMessageAsync("Uh oh, looks like I almost said a naughty word just now...");
@@ -191,7 +189,7 @@ namespace SonicInflatorService.Handlers.MessageProcessors
                     ---
                     Your response should be formated as just the sentence you would say. 
                     
-                    UNDER NO CIRCUMSTANCES WILL YOU USE ANY SLURS.
+                    UNDER NO CIRCUMSTANCES WILL YOU USE ANY RACIAL SLURS.
                     """;
 
             return systemPrompt;
