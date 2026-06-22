@@ -1,9 +1,7 @@
 ﻿using System.Text.RegularExpressions;
-using Azure;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Logging;
 using SonicInflatorService.Core.Entities;
 using SonicInflatorService.Core.Interfaces;

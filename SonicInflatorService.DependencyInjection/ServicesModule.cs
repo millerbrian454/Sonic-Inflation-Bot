@@ -2,7 +2,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using SonicInflatorService.Core.Interfaces;
-using SonicInflatorService.Infrastructure;
 using SonicInflatorService.Infrastructure.Data;
 using SonicInflatorService.Infrastructure.Services;
 using Module = Autofac.Module;
@@ -37,7 +36,24 @@ namespace SonicInflatorService.DependencyInjection
 
             builder
                 .RegisterType<OpenAiLlmService>()
-                .AsImplementedInterfaces()
+                .AsSelf()
+                .SingleInstance();
+
+            builder
+                .RegisterType<OllamaService>()
+                .AsSelf()
+                .SingleInstance();
+
+            builder
+                .Register<ILlmService>(c =>
+                {
+                    var config = c.Resolve<IConfiguration>();
+                    var useOllama = config.GetValue<bool>("OllamaConfig:UseOllama");
+
+                    return useOllama
+                        ? c.Resolve<OllamaService>()
+                        : c.Resolve<OpenAiLlmService>();
+                })
                 .SingleInstance();
 
             builder

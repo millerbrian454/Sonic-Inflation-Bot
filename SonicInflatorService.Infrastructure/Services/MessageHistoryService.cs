@@ -3,7 +3,7 @@ using Discord.WebSocket;
 using Serilog;
 using SonicInflatorService.Core.Interfaces;
 
-namespace SonicInflatorService.Infrastructure
+namespace SonicInflatorService.Infrastructure.Services
 {
     public class MessageHistoryService : IMessageHistoryService
     {
@@ -21,14 +21,19 @@ namespace SonicInflatorService.Infrastructure
 
                 IEnumerable<IMessage> messages = await channel.GetMessagesAsync(limit: limit).FlattenAsync();
 
-                return messages
+                //TODO: Pull ternary operation out of linq statement into its own method
+                var filteredMessages = messages 
                     .Where(m => !string.IsNullOrWhiteSpace(m.Content))
                     .Distinct()
                     .OrderBy(m => m.Timestamp)
                     .Take(limit)
-                    .Select(m =>$"{(m.Author as SocketGuildUser).DisplayName}: {m.CleanContent}")
-                    .ToList();
+                    .Select(m =>
+                    {
+                        var author = m.Author as SocketGuildUser;
+                        return author != null ? $"{author.DisplayName}: {m.CleanContent}" : $"Unknown: {m.CleanContent}";
+                    })                    .ToList();
 
+                return filteredMessages;
             }
             catch (Exception ex)
             {
