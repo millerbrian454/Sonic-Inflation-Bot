@@ -43,6 +43,35 @@ namespace SonicInflatorService.Infrastructure.Services
             return GetOpenAIConfigurationFromAppSettings();
         }
 
+        public async Task<OllamaConfigurationEntity?> GetOllamaConfigurationAsync()
+        {
+            var baseUri = _configuration["OllamaConfig:OllamaBaseUri"];
+            var shouldUseOllama = _configuration.GetValue<bool>("OllamaConfig:UseOllama");
+            
+            if (string.IsNullOrWhiteSpace(baseUri))
+            {
+                _logger.LogWarning("Ollama configuration not found in appsettings.json");
+                return null;
+            }
+
+            var models = _configuration.GetSection("OllamaConfig:OllamaModels").Get<List<string>>() ?? new List<string>();
+
+            _logger.LogInformation("Using Ollama configuration from appsettings.json");
+
+            return new OllamaConfigurationEntity()
+            {
+                Id = -1,
+                BaseUri = baseUri,
+                Models = models.Select(m => new OllamaModelEntity()
+                {
+                    Id = -1,
+                    ModelName = m,
+                    CreatedAt = DateTime.UtcNow
+                }).ToList(),
+                ShouldUseLlm = shouldUseOllama
+            };
+        }
+
         public async Task<DiscordConfigurationEntity?> GetDiscordConfigurationAsync()
         {
             if (_databaseAvailable)
@@ -82,64 +111,6 @@ namespace SonicInflatorService.Infrastructure.Services
             // Fallback to appsettings.json
             var configPath = string.IsNullOrEmpty(section) ? key : $"{section}:{key}";
             return _configuration[configPath];
-        }
-
-        public async Task SetConfigurationValueAsync(string key, string value, string? section = null)
-        {
-            if (_databaseAvailable)
-            {
-                try
-                {
-                    await _databaseService.SetConfigurationValueAsync(key, value, section);
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Database connection failed for configuration value update. Cannot update appsettings.json at runtime.");
-                    _databaseAvailable = false;
-                    throw new InvalidOperationException("Cannot update configuration when database is unavailable.", ex);
-                }
-            }
-
-            throw new InvalidOperationException("Cannot update configuration when database is unavailable.");
-        }
-
-        public async Task UpdateOpenAIConfigurationAsync(OpenAIConfigurationEntity configuration)
-        {
-            if (_databaseAvailable)
-            {
-                try
-                {
-                    await _databaseService.UpdateOpenAIConfigurationAsync(configuration);
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Database connection failed for OpenAI configuration update. Cannot update appsettings.json at runtime.");
-                    _databaseAvailable = false;
-                }
-            }
-
-            throw new InvalidOperationException("Cannot update configuration when database is unavailable.");
-        }
-
-        public async Task UpdateDiscordConfigurationAsync(DiscordConfigurationEntity configuration)
-        {
-            if (_databaseAvailable)
-            {
-                try
-                {
-                    await _databaseService.UpdateDiscordConfigurationAsync(configuration);
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Database connection failed for Discord configuration update. Cannot update appsettings.json at runtime.");
-                    _databaseAvailable = false;
-                }
-            }
-
-            throw new InvalidOperationException("Cannot update configuration when database is unavailable.");
         }
 
         private OpenAIConfigurationEntity? GetOpenAIConfigurationFromAppSettings()

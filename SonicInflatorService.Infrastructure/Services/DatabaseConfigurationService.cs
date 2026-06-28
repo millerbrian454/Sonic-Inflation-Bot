@@ -31,6 +31,11 @@ namespace SonicInflatorService.Infrastructure.Services
                 .FirstOrDefaultAsync();
         }
 
+        public Task<OllamaConfigurationEntity?> GetOllamaConfigurationAsync()
+        {
+            throw new NotImplementedException();
+        }
+
         public async Task<string?> GetConfigurationValueAsync(string key, string? section = null)
         {
             var config = await _context.Configurations

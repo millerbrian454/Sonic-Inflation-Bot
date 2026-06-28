@@ -3,8 +3,9 @@ using System.Text;
 using System.Text.Json;
 using Serilog;
 using SonicInflatorService.Core.Interfaces;
+using SonicInflatorService.Infrastructure.Extensions;
 
-namespace SonicInflatorService.Infrastructure
+namespace SonicInflatorService.Infrastructure.Services
 {
     public class OpenAiLlmService : ILlmService
     {
@@ -29,19 +30,14 @@ namespace SonicInflatorService.Infrastructure
             if (_initialized) return;
 
             var config = await _configService.GetOpenAIConfigurationAsync();
-            if (config == null)
-            {
-                throw new InvalidOperationException("OpenAI configuration not found in database");
-            }
+            
+            config.CheckConfigForNull();
 
             _apiKey = config.ApiKey;
             _baseUri = config.BaseUri;
             _models = config.Models.Select(m => m.ModelName).ToList();
 
-            if (_models.Count == 0)
-            {
-                throw new InvalidOperationException("No OpenAI models configured");
-            }
+            _models.CheckModelCount();
 
             _model = _models.GetEnumerator();
             _model.MoveNext();

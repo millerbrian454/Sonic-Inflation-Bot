@@ -6,9 +6,6 @@ namespace SonicInflatorService.Core.Interfaces
     {
         Task<OpenAIConfigurationEntity?> GetOpenAIConfigurationAsync();
         Task<DiscordConfigurationEntity?> GetDiscordConfigurationAsync();
-        Task<string?> GetConfigurationValueAsync(string key, string? section = null);
-        Task SetConfigurationValueAsync(string key, string value, string? section = null);
-        Task UpdateOpenAIConfigurationAsync(OpenAIConfigurationEntity configuration);
-        Task UpdateDiscordConfigurationAsync(DiscordConfigurationEntity configuration);
+        Task<OllamaConfigurationEntity?> GetOllamaConfigurationAsync();
     }
 }
